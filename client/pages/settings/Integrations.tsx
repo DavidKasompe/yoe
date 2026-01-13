@@ -2,7 +2,7 @@ import { useState } from "react";
 import { MainLayout } from "@/components/MainLayout";
 import { SettingsSidebar } from "@/components/settings/SettingsSidebar";
 import { Check, AlertCircle, Clock } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 const INTEGRATIONS = [
   {
