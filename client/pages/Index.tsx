@@ -1,8 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { BarChart3, Target, Zap } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 export function Index() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-white">
@@ -10,12 +12,31 @@ export function Index() {
       <nav className="border-b border-neutral-200">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="text-2xl font-bold text-black">YOE</div>
-          <button
-            onClick={() => navigate("/coach")}
-            className="bg-brown text-white px-6 py-2 rounded font-medium hover:bg-brown-light transition-colors"
-          >
-            Launch App
-          </button>
+          <div className="flex gap-3">
+            {user ? (
+              <button
+                onClick={() => navigate("/coach")}
+                className="bg-brown text-white px-6 py-2 rounded font-medium hover:bg-brown-light transition-colors"
+              >
+                Launch App
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => navigate("/auth/sign-in")}
+                  className="text-black px-6 py-2 rounded font-medium hover:bg-neutral-100 transition-colors border border-black"
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={() => navigate("/auth/sign-up")}
+                  className="bg-brown text-white px-6 py-2 rounded font-medium hover:bg-brown-light transition-colors"
+                >
+                  Sign Up
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </nav>
 
