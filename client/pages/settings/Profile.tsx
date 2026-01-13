@@ -2,7 +2,7 @@ import { useState } from "react";
 import { MainLayout } from "@/components/MainLayout";
 import { SettingsSidebar } from "@/components/settings/SettingsSidebar";
 import { useAuth } from "@/context/AuthContext";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 export function ProfileSettings() {
   const { user, updateUser } = useAuth();
