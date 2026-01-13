@@ -1,5 +1,19 @@
 import { MainLayout } from "@/components/MainLayout";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 import { ArrowUp, ArrowDown, TrendingUp } from "lucide-react";
 
 const KPI_DATA = [
@@ -113,16 +127,12 @@ export function CoachDashboard() {
                     <p className="text-sm font-medium text-neutral-600 mb-1">
                       {kpi.label}
                     </p>
-                    <p className="text-2xl font-bold text-black">
-                      {kpi.value}
-                    </p>
+                    <p className="text-2xl font-bold text-black">{kpi.value}</p>
                   </div>
                   <Icon
                     size={24}
                     className={
-                      kpi.isPositive
-                        ? "text-green-600"
-                        : "text-red-600"
+                      kpi.isPositive ? "text-green-600" : "text-red-600"
                     }
                   />
                 </div>
@@ -227,17 +237,13 @@ export function CoachDashboard() {
                     <td className="py-3 px-4">
                       <span
                         className={`px-3 py-1 rounded text-white font-medium ${
-                          match.result === "WIN"
-                            ? "bg-green-600"
-                            : "bg-red-600"
+                          match.result === "WIN" ? "bg-green-600" : "bg-red-600"
                         }`}
                       >
                         {match.result}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-neutral-600">
-                      {match.date}
-                    </td>
+                    <td className="py-3 px-4 text-neutral-600">{match.date}</td>
                     <td className="py-3 px-4 text-neutral-600">
                       {match.duration}
                     </td>

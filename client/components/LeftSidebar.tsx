@@ -7,12 +7,7 @@ interface SidebarProps {
   onTeamSelect?: (team: string) => void;
 }
 
-const SAMPLE_TEAMS = [
-  "Team Alpha",
-  "Team Beta",
-  "Team Gamma",
-  "Team Delta",
-];
+const SAMPLE_TEAMS = ["Team Alpha", "Team Beta", "Team Gamma", "Team Delta"];
 
 const SAMPLE_PLAYERS = [
   "Player One",
@@ -25,8 +20,12 @@ const SAMPLE_PLAYERS = [
 export function LeftSidebar({ onPlayerSelect, onTeamSelect }: SidebarProps) {
   const [expandTeams, setExpandTeams] = useState(true);
   const [expandPlayers, setExpandPlayers] = useState(true);
-  const [selectedTeam, setSelectedTeam] = useState<string | null>(SAMPLE_TEAMS[0]);
-  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(SAMPLE_PLAYERS[0]);
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(
+    SAMPLE_TEAMS[0],
+  );
+  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(
+    SAMPLE_PLAYERS[0],
+  );
 
   const handleTeamSelect = (team: string) => {
     setSelectedTeam(team);
@@ -52,7 +51,7 @@ export function LeftSidebar({ onPlayerSelect, onTeamSelect }: SidebarProps) {
               size={16}
               className={cn(
                 "text-neutral-600 transition-transform",
-                expandTeams ? "rotate-0" : "-rotate-90"
+                expandTeams ? "rotate-0" : "-rotate-90",
               )}
             />
           </button>
@@ -66,7 +65,7 @@ export function LeftSidebar({ onPlayerSelect, onTeamSelect }: SidebarProps) {
                     "w-full text-left px-3 py-2 text-sm rounded transition-colors",
                     selectedTeam === team
                       ? "bg-brown text-white font-medium"
-                      : "text-neutral-700 hover:bg-neutral-200"
+                      : "text-neutral-700 hover:bg-neutral-200",
                   )}
                 >
                   {team}
@@ -87,7 +86,7 @@ export function LeftSidebar({ onPlayerSelect, onTeamSelect }: SidebarProps) {
               size={16}
               className={cn(
                 "text-neutral-600 transition-transform",
-                expandPlayers ? "rotate-0" : "-rotate-90"
+                expandPlayers ? "rotate-0" : "-rotate-90",
               )}
             />
           </button>
@@ -101,7 +100,7 @@ export function LeftSidebar({ onPlayerSelect, onTeamSelect }: SidebarProps) {
                     "w-full text-left px-3 py-2 text-sm rounded transition-colors",
                     selectedPlayer === player
                       ? "bg-brown text-white font-medium"
-                      : "text-neutral-700 hover:bg-neutral-200"
+                      : "text-neutral-700 hover:bg-neutral-200",
                   )}
                 >
                   {player}
@@ -132,10 +131,7 @@ export function LeftSidebar({ onPlayerSelect, onTeamSelect }: SidebarProps) {
               <span className="text-neutral-700">Ranked Only</span>
             </label>
             <label className="flex items-center">
-              <input
-                type="checkbox"
-                className="w-4 h-4 mr-2 accent-brown"
-              />
+              <input type="checkbox" className="w-4 h-4 mr-2 accent-brown" />
               <span className="text-neutral-700">Show All Roles</span>
             </label>
           </div>

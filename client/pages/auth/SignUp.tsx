@@ -18,14 +18,14 @@ export function SignUp() {
         data.fullName || "",
         data.email,
         data.password,
-        data.role || "Coach"
+        data.role || "Coach",
       );
       navigate("/coach");
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : "Failed to create account. Please try again."
+          : "Failed to create account. Please try again.",
       );
     } finally {
       setIsLoading(false);
@@ -38,9 +38,7 @@ export function SignUp() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">YOE</h1>
-          <p className="text-neutral-400">
-            Competitive Intelligence Platform
-          </p>
+          <p className="text-neutral-400">Competitive Intelligence Platform</p>
         </div>
 
         {/* Sign Up Card */}
@@ -112,7 +110,9 @@ export function SignUp() {
 
         {/* Footer Info */}
         <div className="text-center mt-8 text-neutral-500 text-xs">
-          <p>By signing up, you agree to our Terms of Service and Privacy Policy</p>
+          <p>
+            By signing up, you agree to our Terms of Service and Privacy Policy
+          </p>
         </div>
       </div>
     </div>

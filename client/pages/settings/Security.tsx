@@ -14,7 +14,11 @@ export function SecuritySettings() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const passwordStrength =
-    newPassword.length >= 8 ? "strong" : newPassword.length >= 6 ? "medium" : "";
+    newPassword.length >= 8
+      ? "strong"
+      : newPassword.length >= 6
+        ? "medium"
+        : "";
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +51,7 @@ export function SecuritySettings() {
       await new Promise((resolve) => setTimeout(resolve, 500));
       setTwoFAEnabled(!twoFAEnabled);
       toast.success(
-        twoFAEnabled ? "2FA disabled" : "2FA enabled successfully!"
+        twoFAEnabled ? "2FA disabled" : "2FA enabled successfully!",
       );
     } catch (error) {
       toast.error("Failed to update 2FA settings");
@@ -239,7 +243,9 @@ export function SecuritySettings() {
               <div className="flex items-start gap-3 mb-4">
                 <AlertTriangle size={24} className="text-red-600 mt-1" />
                 <div>
-                  <h2 className="text-lg font-bold text-red-900">Danger Zone</h2>
+                  <h2 className="text-lg font-bold text-red-900">
+                    Danger Zone
+                  </h2>
                   <p className="text-sm text-red-800 mt-1">
                     Permanent account actions
                   </p>

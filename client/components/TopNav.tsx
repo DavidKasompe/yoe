@@ -35,7 +35,7 @@ export function TopNav() {
                   "text-sm font-medium transition-colors",
                   isActive(module.path)
                     ? "text-black border-b-2 border-brown"
-                    : "text-neutral-600 hover:text-black"
+                    : "text-neutral-600 hover:text-black",
                 )}
               >
                 {module.name}

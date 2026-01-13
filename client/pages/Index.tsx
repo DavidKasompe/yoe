@@ -84,8 +84,8 @@ export function Index() {
             </h1>
             <p className="text-xl text-neutral-600 mb-8">
               YOE empowers coaches, scouts, and analysts with AI-driven insights
-              for competitive League of Legends teams. Analyze opponents, optimize
-              picks, and dominate the draft.
+              for competitive League of Legends teams. Analyze opponents,
+              optimize picks, and dominate the draft.
             </p>
             <div className="flex gap-4">
               <button

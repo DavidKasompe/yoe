@@ -85,7 +85,7 @@ export function AuthForm({
   };
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
@@ -121,7 +121,7 @@ export function AuthForm({
               "w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brown",
               validationErrors.fullName
                 ? "border-red-500 focus:ring-red-500"
-                : "border-neutral-300"
+                : "border-neutral-300",
             )}
             placeholder="John Doe"
             disabled={isLoading}
@@ -140,10 +140,7 @@ export function AuthForm({
           Email Address
         </label>
         <div className="relative">
-          <Mail
-            size={18}
-            className="absolute left-3 top-3 text-neutral-400"
-          />
+          <Mail size={18} className="absolute left-3 top-3 text-neutral-400" />
           <input
             type="email"
             name="email"
@@ -153,7 +150,7 @@ export function AuthForm({
               "w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brown",
               validationErrors.email
                 ? "border-red-500 focus:ring-red-500"
-                : "border-neutral-300"
+                : "border-neutral-300",
             )}
             placeholder="you@example.com"
             disabled={isLoading}
@@ -170,10 +167,7 @@ export function AuthForm({
           Password
         </label>
         <div className="relative">
-          <Lock
-            size={18}
-            className="absolute left-3 top-3 text-neutral-400"
-          />
+          <Lock size={18} className="absolute left-3 top-3 text-neutral-400" />
           <input
             type={showPassword ? "text" : "password"}
             name="password"
@@ -183,7 +177,7 @@ export function AuthForm({
               "w-full pl-10 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brown",
               validationErrors.password
                 ? "border-red-500 focus:ring-red-500"
-                : "border-neutral-300"
+                : "border-neutral-300",
             )}
             placeholder="••••••••"
             disabled={isLoading}
@@ -228,7 +222,7 @@ export function AuthForm({
                 "w-full pl-10 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brown",
                 validationErrors.confirmPassword
                   ? "border-red-500 focus:ring-red-500"
-                  : "border-neutral-300"
+                  : "border-neutral-300",
               )}
               placeholder="••••••••"
               disabled={isLoading}

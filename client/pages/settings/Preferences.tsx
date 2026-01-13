@@ -12,9 +12,7 @@ export function PreferencesSettings() {
   });
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLSelectElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
     setPreferences((prev) => ({
       ...prev,
@@ -166,10 +164,7 @@ export function PreferencesSettings() {
                       </span>
                     </label>
                     <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 accent-brown"
-                      />
+                      <input type="checkbox" className="w-4 h-4 accent-brown" />
                       <span className="ml-3 text-sm text-neutral-700">
                         Weekly digest
                       </span>

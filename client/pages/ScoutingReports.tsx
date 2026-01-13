@@ -18,8 +18,8 @@ export function ScoutingReports() {
             Scouting Module
           </h2>
           <p className="text-neutral-600 mb-6">
-            This section will include opponent selection, auto-generated scouting
-            reports, and player tendency analysis.
+            This section will include opponent selection, auto-generated
+            scouting reports, and player tendency analysis.
           </p>
           <div className="inline-block bg-brown text-white px-6 py-2 rounded cursor-pointer hover:bg-brown-light transition-colors">
             Coming Soon
