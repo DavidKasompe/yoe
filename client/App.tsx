@@ -6,8 +6,11 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { Index } from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import { CoachDashboard } from "./pages/CoachDashboard";
+import { ScoutingReports } from "./pages/ScoutingReports";
+import { DraftIntelligence } from "./pages/DraftIntelligence";
 
 const queryClient = new QueryClient();
 
@@ -19,6 +22,12 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/coach" element={<CoachDashboard />} />
+          <Route path="/coach/*" element={<CoachDashboard />} />
+          <Route path="/scout" element={<ScoutingReports />} />
+          <Route path="/scout/*" element={<ScoutingReports />} />
+          <Route path="/draft" element={<DraftIntelligence />} />
+          <Route path="/draft/*" element={<DraftIntelligence />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
