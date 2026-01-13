@@ -2,7 +2,7 @@ import { useState } from "react";
 import { MainLayout } from "@/components/MainLayout";
 import { SettingsSidebar } from "@/components/settings/SettingsSidebar";
 import { AlertTriangle, Eye, EyeOff, Check, X } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 export function SecuritySettings() {
   const [showPassword, setShowPassword] = useState(false);
