@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/MainLayout";
 import { SettingsSidebar } from "@/components/settings/SettingsSidebar";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 export function PreferencesSettings() {
   const [preferences, setPreferences] = useState({
