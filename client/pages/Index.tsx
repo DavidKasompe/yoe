@@ -4,9 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 
 export function Index() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-
-  const { login } = useAuth();
+  const { user, login } = useAuth();
 
   const handleDemoLogin = async () => {
     try {
