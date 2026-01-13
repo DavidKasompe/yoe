@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { BarChart3, Target, Zap } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useEffect, useState } from "react";
 
 export function Index() {
   const navigate = useNavigate();
