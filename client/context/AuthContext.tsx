@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 
 interface User {
   id: string;
@@ -19,7 +25,7 @@ interface AuthContextType {
     fullName: string,
     email: string,
     password: string,
-    role: string
+    role: string,
   ) => Promise<void>;
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
@@ -83,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fullName: string,
     email: string,
     password: string,
-    role: string
+    role: string,
   ) => {
     setIsLoading(true);
     try {

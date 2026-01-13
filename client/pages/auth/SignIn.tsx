@@ -19,7 +19,9 @@ export function SignIn() {
       navigate("/coach");
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to sign in. Please try again."
+        err instanceof Error
+          ? err.message
+          : "Failed to sign in. Please try again.",
       );
     } finally {
       setIsLoading(false);
@@ -32,9 +34,7 @@ export function SignIn() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">YOE</h1>
-          <p className="text-neutral-400">
-            Competitive Intelligence Platform
-          </p>
+          <p className="text-neutral-400">Competitive Intelligence Platform</p>
         </div>
 
         {/* Sign In Card */}

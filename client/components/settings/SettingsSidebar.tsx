@@ -49,7 +49,7 @@ export function SettingsSidebar() {
                 "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
                 isActive(item.path)
                   ? "bg-brown text-white"
-                  : "text-neutral-700 hover:bg-neutral-200"
+                  : "text-neutral-700 hover:bg-neutral-200",
               )}
             >
               <Icon size={20} />

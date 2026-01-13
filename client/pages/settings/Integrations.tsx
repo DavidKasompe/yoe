@@ -75,8 +75,8 @@ export function IntegrationsSettings() {
         prev.map((int) =>
           int.name === integrationName
             ? { ...int, status: "connected", lastSync: "Just now" }
-            : int
-        )
+            : int,
+        ),
       );
       toast.success(`${integrationName} connected successfully!`);
     } catch (error) {
@@ -91,8 +91,8 @@ export function IntegrationsSettings() {
       prev.map((int) =>
         int.name === integrationName
           ? { ...int, status: "available", lastSync: null }
-          : int
-      )
+          : int,
+      ),
     );
     toast.success(`${integrationName} disconnected`);
   };
