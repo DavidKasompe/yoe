@@ -6,6 +6,29 @@ export function Index() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  const { login } = useAuth();
+
+  const handleDemoLogin = async () => {
+    try {
+      await login("demo@yoe.com", "demopassword");
+      navigate("/coach");
+    } catch {
+      // Demo login for testing
+      const mockUser = {
+        id: "demo-user",
+        email: "demo@yoe.com",
+        fullName: "Demo Coach",
+        displayName: "Coach Demo",
+        role: "Coach" as const,
+        teamAffiliation: "Demo Team",
+        region: "NA",
+      };
+      localStorage.setItem("authToken", "demo-token");
+      localStorage.setItem("user", JSON.stringify(mockUser));
+      window.location.href = "/coach";
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
@@ -14,14 +37,28 @@ export function Index() {
           <div className="text-2xl font-bold text-black">YOE</div>
           <div className="flex gap-3">
             {user ? (
-              <button
-                onClick={() => navigate("/coach")}
-                className="bg-brown text-white px-6 py-2 rounded font-medium hover:bg-brown-light transition-colors"
-              >
-                Launch App
-              </button>
+              <>
+                <button
+                  onClick={() => navigate("/settings")}
+                  className="text-black px-6 py-2 rounded font-medium hover:bg-neutral-100 transition-colors border border-black"
+                >
+                  Settings
+                </button>
+                <button
+                  onClick={() => navigate("/coach")}
+                  className="bg-brown text-white px-6 py-2 rounded font-medium hover:bg-brown-light transition-colors"
+                >
+                  Launch App
+                </button>
+              </>
             ) : (
               <>
+                <button
+                  onClick={handleDemoLogin}
+                  className="text-black px-6 py-2 rounded font-medium hover:bg-neutral-100 transition-colors border border-black"
+                >
+                  Demo Login
+                </button>
                 <button
                   onClick={() => navigate("/auth/sign-in")}
                   className="text-black px-6 py-2 rounded font-medium hover:bg-neutral-100 transition-colors border border-black"
