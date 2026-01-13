@@ -1,62 +1,123 @@
-import { DemoResponse } from "@shared/api";
-import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { BarChart3, Target, Zap } from "lucide-react";
 
-export default function Index() {
-  const [exampleFromServer, setExampleFromServer] = useState("");
-  // Fetch users on component mount
-  useEffect(() => {
-    fetchDemo();
-  }, []);
-
-  // Example of how to fetch data from the server (if needed)
-  const fetchDemo = async () => {
-    try {
-      const response = await fetch("/api/demo");
-      const data = (await response.json()) as DemoResponse;
-      setExampleFromServer(data.message);
-    } catch (error) {
-      console.error("Error fetching hello:", error);
-    }
-  };
+export function Index() {
+  const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
-      <div className="text-center">
-        {/* TODO: FUSION_GENERATION_APP_PLACEHOLDER replace everything here with the actual app! */}
-        <h1 className="text-2xl font-semibold text-slate-800 flex items-center justify-center gap-3">
-          <svg
-            className="animate-spin h-8 w-8 text-slate-400"
-            viewBox="0 0 50 50"
+    <div className="min-h-screen bg-white">
+      {/* Navigation */}
+      <nav className="border-b border-neutral-200">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="text-2xl font-bold text-black">YOE</div>
+          <button
+            onClick={() => navigate("/coach")}
+            className="bg-brown text-white px-6 py-2 rounded font-medium hover:bg-brown-light transition-colors"
           >
-            <circle
-              className="opacity-30"
-              cx="25"
-              cy="25"
-              r="20"
-              stroke="currentColor"
-              strokeWidth="5"
-              fill="none"
-            />
-            <circle
-              className="text-slate-600"
-              cx="25"
-              cy="25"
-              r="20"
-              stroke="currentColor"
-              strokeWidth="5"
-              fill="none"
-              strokeDasharray="100"
-              strokeDashoffset="75"
-            />
-          </svg>
-          Generating your app...
-        </h1>
-        <p className="mt-4 text-slate-600 max-w-md">
-          Watch the chat on the left for updates that might need your attention
-          to finish generating
-        </p>
-        <p className="mt-4 hidden max-w-md">{exampleFromServer}</p>
+            Launch App
+          </button>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <div className="max-w-7xl mx-auto px-6 py-20">
+        <div className="grid md:grid-cols-2 gap-12 items-center mb-20">
+          <div>
+            <h1 className="text-5xl font-bold text-black mb-6 leading-tight">
+              Competitive Intelligence for Champions
+            </h1>
+            <p className="text-xl text-neutral-600 mb-8">
+              YOE empowers coaches, scouts, and analysts with AI-driven insights
+              for competitive League of Legends teams. Analyze opponents, optimize
+              picks, and dominate the draft.
+            </p>
+            <div className="flex gap-4">
+              <button
+                onClick={() => navigate("/coach")}
+                className="bg-black text-white px-8 py-3 rounded font-medium hover:bg-neutral-900 transition-colors"
+              >
+                Get Started
+              </button>
+              <button className="border-2 border-black text-black px-8 py-3 rounded font-medium hover:bg-neutral-50 transition-colors">
+                Learn More
+              </button>
+            </div>
+          </div>
+          <div className="bg-neutral-100 rounded-lg h-96 flex items-center justify-center border border-neutral-200">
+            <div className="text-center">
+              <BarChart3 size={64} className="mx-auto text-neutral-400 mb-4" />
+              <p className="text-neutral-500">Advanced Analytics Dashboard</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Features */}
+        <div className="grid md:grid-cols-3 gap-8 mb-20">
+          <div className="bg-white border border-neutral-200 rounded-lg p-8">
+            <div className="w-12 h-12 bg-brown rounded-lg flex items-center justify-center mb-4">
+              <BarChart3 size={24} className="text-white" />
+            </div>
+            <h3 className="text-lg font-bold text-black mb-3">
+              Coach Dashboard
+            </h3>
+            <p className="text-neutral-600">
+              Real-time KPIs, win rates, objective control, and performance
+              metrics with AI-powered recommendations.
+            </p>
+          </div>
+
+          <div className="bg-white border border-neutral-200 rounded-lg p-8">
+            <div className="w-12 h-12 bg-brown rounded-lg flex items-center justify-center mb-4">
+              <Target size={24} className="text-white" />
+            </div>
+            <h3 className="text-lg font-bold text-black mb-3">
+              Scouting Reports
+            </h3>
+            <p className="text-neutral-600">
+              Auto-generated opponent analysis, player tendencies, and strategic
+              breakdowns for competitive advantage.
+            </p>
+          </div>
+
+          <div className="bg-white border border-neutral-200 rounded-lg p-8">
+            <div className="w-12 h-12 bg-brown rounded-lg flex items-center justify-center mb-4">
+              <Zap size={24} className="text-white" />
+            </div>
+            <h3 className="text-lg font-bold text-black mb-3">
+              Draft Intelligence
+            </h3>
+            <p className="text-neutral-600">
+              Live draft simulation and AI pick/ban recommendations with
+              confidence indicators.
+            </p>
+          </div>
+        </div>
+
+        {/* CTA Section */}
+        <div className="bg-black text-white rounded-lg p-12 text-center">
+          <h2 className="text-3xl font-bold mb-4">
+            Ready to Elevate Your Game?
+          </h2>
+          <p className="text-xl text-neutral-300 mb-8">
+            Start using YOE and gain competitive intelligence advantage
+          </p>
+          <button
+            onClick={() => navigate("/coach")}
+            className="bg-brown text-white px-8 py-3 rounded font-medium hover:bg-brown-light transition-colors"
+          >
+            Access Dashboard
+          </button>
+        </div>
       </div>
+
+      {/* Footer */}
+      <footer className="border-t border-neutral-200 bg-neutral-50 py-8 mt-20">
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <p className="text-neutral-600">
+            © 2024 YOE. Professional esports analytics platform.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
