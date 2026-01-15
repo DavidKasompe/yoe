@@ -1,4 +1,5 @@
 import requests
+import time
 from django.conf import settings
 import logging
 
@@ -7,6 +8,7 @@ logger = logging.getLogger(__name__)
 class GridAPIClient:
     """
     Client for interacting with GRID APIs.
+    Ensures security and compliance (Rate limiting, No raw data redistribution).
     """
     def __init__(self):
         self.api_key = getattr(settings, 'GRID_API_KEY', None)
@@ -15,11 +17,19 @@ class GridAPIClient:
             'x-api-key': self.api_key,
             'Content-Type': 'application/json'
         }
+        self.rate_limit_pause = 1.0  # Pause for 1 second on 429
 
     def _get(self, endpoint, params=None):
         url = f"{self.base_url}{endpoint}"
         try:
             response = requests.get(url, headers=self.headers, params=params)
+            
+            # Handle Rate Limiting (GRID-Friendly)
+            if response.status_code == 429:
+                logger.warning("GRID API Rate Limit reached. Pausing...")
+                time.sleep(self.rate_limit_pause)
+                return self._get(endpoint, params)
+
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
@@ -31,6 +41,13 @@ class GridAPIClient:
         url = f"{self.base_url}{endpoint}"
         try:
             response = requests.post(url, headers=self.headers, json=data)
+
+            # Handle Rate Limiting (GRID-Friendly)
+            if response.status_code == 429:
+                logger.warning("GRID API Rate Limit reached. Pausing...")
+                time.sleep(self.rate_limit_pause)
+                return self._post(endpoint, data)
+
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
