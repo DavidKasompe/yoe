@@ -1,8 +1,12 @@
 import pandas as pd
 import numpy as np
-from analytics.models import Match, PlayerStats, TeamStats, AIInsight, Draft, ExtractedFeature
+from analytics.models import Match, PlayerStats, TeamStats, AIInsight, Draft, ExtractedFeature, Team
+from .grid_api_client import GridAPIClient
 
 class AnalyticsService:
+    def __init__(self):
+        self.grid_client = GridAPIClient()
+
     def analyze_match(self, match_id_or_obj):
         """
         Run full analysis pipeline on a match.
@@ -26,7 +30,65 @@ class AnalyticsService:
         # 3. Insight Generation
         self._generate_insights(match)
         
+        # 4. Long-term Team Performance Analysis (Stats Feed)
+        self._analyze_team_performance(match)
+        
         return match
+
+    def _analyze_team_performance(self, match):
+        """
+        Analyze long-term performance for teams in the match using GRID Stats Feed.
+        """
+        teams = Team.objects.filter(id__in=[match.winner_id] + list(match.team_stats.values_list('team_id', flat=True)))
+        
+        for team in teams:
+            # Dynamically select filter based on use case (Scouting)
+            perf_data = self.grid_client.get_team_performance(team.name, time_window="LAST_6_MONTHS")
+            stats = perf_data.get('data', {}).get('teamStatistics')
+            
+            if not stats:
+                continue
+
+            # 1. Aggression Index (kills vs deaths)
+            avg_kills = stats['series']['kills']['avg']
+            avg_deaths = stats['series']['deaths']['avg']
+            aggression_index = avg_kills / max(1, avg_deaths)
+            
+            # 2. Consistency Score (win streak volatility)
+            win_pct = stats['game']['wins']['percentage']
+            max_streak = stats['game']['wins']['streak']['max']
+            current_streak = stats['game']['wins']['streak']['current']
+            # Heuristic: win_pct * (current / max) adjusted for volatility
+            consistency_score = win_pct * (1 + (current_streak / max(1, max_streak)))
+            
+            # 3. Momentum Indicators
+            momentum = "High" if current_streak >= 3 else "Stable"
+            
+            # Save Insights
+            AIInsight.objects.create(
+                match=match,
+                category="Assistant Coach",
+                explanation=(
+                    f"Team {team.name} Trends: Aggression Index is {aggression_index:.2f}. "
+                    f"Consistency Score: {consistency_score:.2f}. "
+                    f"Momentum: {momentum} (Current Streak: {current_streak})."
+                ),
+                confidence=0.88
+            )
+            
+            # Save Extracted Features
+            ExtractedFeature.objects.create(
+                entity_id=team.name,
+                entity_type='Team',
+                feature_name='aggression_index',
+                value=aggression_index
+            )
+            ExtractedFeature.objects.create(
+                entity_id=team.name,
+                entity_type='Team',
+                feature_name='consistency_score',
+                value=consistency_score
+            )
 
     def _extract_performance_features(self, match):
         """
@@ -122,15 +184,16 @@ class AnalyticsService:
             )
 
         # 2. Match Summary Insight
-        story = (
-            f"Strategic Breakdown: {winner.name} dominated the objective game, "
-            f"securing victory in {duration_min} minutes. Their gold efficiency "
-            f"around the 15-minute mark allowed for a clean snowball into the late game."
-        )
-        
-        AIInsight.objects.create(
-            match=match,
-            category="Summary",
-            explanation=story,
-            confidence=0.99
-        )
+        if winner:
+            story = (
+                f"Strategic Breakdown: {winner.name} dominated the objective game, "
+                f"securing victory in {duration_min} minutes. Their gold efficiency "
+                f"around the 15-minute mark allowed for a clean snowball into the late game."
+            )
+            
+            AIInsight.objects.create(
+                match=match,
+                category="Summary",
+                explanation=story,
+                confidence=0.99
+            )

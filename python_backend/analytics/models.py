@@ -60,8 +60,13 @@ class Match(models.Model):
     duration = models.IntegerField()  # Seconds
     winner = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, related_name='wins')
     
+    # New fields for Series Context
+    format_type = models.CharField(max_length=20, null=True, blank=True) # e.g., 'Bo1', 'Bo3'
+    tournament_name = models.CharField(max_length=200, null=True, blank=True)
+    game_title = models.CharField(max_length=50, null=True, blank=True) # e.g., 'LoL', 'VAL'
+    
     def __str__(self):
-        return f"Match {self.grid_match_id}"
+        return f"Match {self.grid_match_id} ({self.game_title})"
 
 class PlayerStats(models.Model):
     match = models.ForeignKey(Match, on_delete=models.CASCADE, related_name='player_stats')
