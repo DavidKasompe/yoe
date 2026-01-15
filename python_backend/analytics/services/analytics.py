@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from analytics.models import Match, PlayerStats, TeamStats, AIInsight, Draft, ExtractedFeature, Team
+from analytics.models import Match, PlayerStats, TeamStats, AIInsight, Draft, ExtractedFeature, Team, ChampionPool
 from .grid_api_client import GridAPIClient
 
 class AnalyticsService:
@@ -111,6 +111,76 @@ class AnalyticsService:
         # Calculate Gold Efficiency
         df['gold_per_cs'] = df['gold_earned'] / df['cs'].replace(0, 1)
         
+        # 1. Team Discipline (Deaths Variance)
+        deaths_variance = df['deaths'].var()
+        
+        # 2. Early-game dominance (Segment-level win % proxy via Gold Diff @ 15)
+        team_stats = TeamStats.objects.filter(match=match)
+        for ts in team_stats:
+            # Early game dominance feature (normalized -1 to 1 based on 5000 gold diff)
+            dominance = max(-1.0, min(1.0, ts.gold_diff_15 / 5000.0))
+            ExtractedFeature.objects.create(
+                entity_id=ts.team.name,
+                entity_type='Team',
+                feature_name='early_game_dominance',
+                value=dominance
+            )
+            
+            # Team Discipline feature (inverted variance - more variance = less discipline)
+            # Normalized 0 to 1
+            discipline = 1.0 / (1.0 + deaths_variance)
+            ExtractedFeature.objects.create(
+                entity_id=ts.team.name,
+                entity_type='Team',
+                feature_name='team_discipline',
+                value=discipline
+            )
+
+        # 3. Draft Comfort (Champion usage frequency)
+        drafts = Draft.objects.filter(match=match)
+        for draft in drafts:
+            comfort_scores = []
+            # Debug: print(f"Checking draft for {draft.team.name}. Picks: {draft.picks}")
+            for pick in draft.picks:
+                # Find if any player in the team has this champ in their pool
+                # Use filter and iterate or first()
+                pool = ChampionPool.objects.filter(player__team=draft.team, champion=pick)
+                if pool.exists():
+                    # Comfort = frequency * winrate normalized
+                    p = pool.first()
+                    score = min(1.0, (p.frequency * p.win_rate) / 20.0)
+                    # Debug: print(f"Found {pick} in pool. Score: {score}")
+                    comfort_scores.append(score)
+                else:
+                    # Debug: print(f"Could NOT find {pick} in pool for team {draft.team.name}")
+                    comfort_scores.append(0.0)
+            
+            avg_comfort = sum(comfort_scores) / max(1, len(comfort_scores))
+            ExtractedFeature.objects.create(
+                entity_id=draft.team.name,
+                entity_type='Team',
+                feature_name='draft_comfort',
+                value=avg_comfort
+            )
+
+        # 4. Clutch Factor (Win streak recovery / performance under pressure)
+        # Mock logic based on winner and match importance
+        for ts in team_stats:
+            is_winner = (match.winner == ts.team)
+            # High clutch if won a Bo3/Bo5 and was behind at 15
+            clutch_value = 0.5
+            if is_winner and ts.gold_diff_15 < 0:
+                clutch_value = 0.9 # Comeback win
+            elif not is_winner and ts.gold_diff_15 > 0:
+                clutch_value = 0.2 # Thrown lead
+            
+            ExtractedFeature.objects.create(
+                entity_id=ts.team.name,
+                entity_type='Team',
+                feature_name='clutch_factor',
+                value=clutch_value
+            )
+
         # Find MVP (Highest Aggression)
         try:
             mvp_row = df.loc[df['aggression'].idxmax()]
