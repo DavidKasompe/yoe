@@ -27,11 +27,47 @@ class GridAPIClient:
             # For the sake of this implementation, we return mock data if API fails or key is default
             return self._get_mock_response(endpoint)
 
+    def _post(self, endpoint, data=None):
+        url = f"{self.base_url}{endpoint}"
+        try:
+            response = requests.post(url, headers=self.headers, json=data)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            logger.error(f"GRID API POST Error: {e}")
+            return self._get_mock_response(endpoint, data)
+
     def get_series_context(self, series_id):
         """
-        Fetch series/match context from Central Data Feed (Static).
+        Fetch series/match context from Central Data Feed using GraphQL.
         """
-        return self._get(f"/central/series/{series_id}")
+        query = """
+        query GetSeriesContext($seriesId: ID!) {
+          series(id: $seriesId) {
+            id
+            startTimeScheduled
+            format {
+              type
+            }
+            tournament {
+              name
+            }
+            teams {
+              team {
+                name
+                id
+              }
+            }
+            title {
+              nameShortened
+            }
+          }
+        }
+        """
+        variables = {"seriesId": series_id}
+        # In actual GRID API, this might be a single GraphQL endpoint like /graphql
+        # Adjusting the mock/logic to handle GraphQL-style requests
+        return self._post("/central/graphql", {"query": query, "variables": variables})
 
     def get_match_stats(self, match_id):
         """
@@ -39,11 +75,87 @@ class GridAPIClient:
         """
         return self._get(f"/stats/match/{match_id}")
 
-    def _get_mock_response(self, endpoint):
+    def get_team_performance(self, team_id, time_window="LAST_6_MONTHS"):
+        """
+        Fetch team performance metrics from Stats Feed using GraphQL.
+        """
+        query = """
+        query TeamPerformance($teamId: ID!, $timeWindow: String!) {
+          teamStatistics(
+            teamId: $teamId,
+            filter: { timeWindow: $timeWindow }
+          ) {
+            series {
+              count
+              kills { avg }
+              deaths { avg }
+            }
+            game {
+              wins {
+                percentage
+                streak {
+                  max
+                  current
+                }
+              }
+            }
+          }
+        }
+        """
+        variables = {"teamId": team_id, "timeWindow": time_window}
+        return self._post("/stats/graphql", {"query": query, "variables": variables})
+
+    def _get_mock_response(self, endpoint, post_data=None):
         """
         Provides realistic mock data when the real API is not accessible.
-        In a production environment, this would handle actual API failures.
         """
+        if "/central/graphql" in endpoint:
+            # Handle GraphQL mock based on query name
+            if post_data and "GetSeriesContext" in post_data.get("query", ""):
+                series_id = post_data.get("variables", {}).get("seriesId", "unknown")
+                return {
+                    "data": {
+                        "series": {
+                            "id": series_id,
+                            "startTimeScheduled": "2024-01-15T12:00:00Z",
+                            "format": {"type": "Bo3"},
+                            "tournament": {"name": "LCK Spring 2024"},
+                            "teams": [
+                                {
+                                    "team": {"id": "t1-id", "name": "T1"}
+                                },
+                                {
+                                    "team": {"id": "geng-id", "name": "Gen.G"}
+                                }
+                            ],
+                            "title": {"nameShortened": "LoL"}
+                        }
+                    }
+                }
+
+        if "/stats/graphql" in endpoint:
+            if post_data and "TeamPerformance" in post_data.get("query", ""):
+                return {
+                    "data": {
+                        "teamStatistics": {
+                            "series": {
+                                "count": 24,
+                                "kills": {"avg": 14.5},
+                                "deaths": {"avg": 12.2}
+                            },
+                            "game": {
+                                "wins": {
+                                    "percentage": 0.65,
+                                    "streak": {
+                                        "max": 8,
+                                        "current": 3
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
         if "/central/series/" in endpoint:
             return {
                 "id": endpoint.split("/")[-1],
