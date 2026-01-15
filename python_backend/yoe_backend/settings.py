@@ -10,10 +10,15 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
+import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables
+load_dotenv(BASE_DIR / '.env')
 
 
 # Quick-start development settings - unsuitable for production
@@ -148,7 +153,7 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 # GRID API Configuration
-GRID_API_KEY = 'your_grid_api_key_here'
-GRID_BASE_URL = 'https://api.grid.gg' # Hypothetical base URL
+GRID_API_KEY = os.getenv('GRID_API_KEY', 'default_key_if_not_set')
+GRID_BASE_URL = os.getenv('GRID_BASE_URL', 'https://api.grid.gg')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
