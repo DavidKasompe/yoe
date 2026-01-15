@@ -104,13 +104,23 @@ export function CoachDashboard() {
     <MainLayout>
       <div className="max-w-7xl">
         {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-black mb-2">
-            Assistant Coach Dashboard
-          </h1>
-          <p className="text-neutral-600">
-            Team performance overview and actionable insights
-          </p>
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-black mb-2">
+              Assistant Coach Dashboard
+            </h1>
+            <p className="text-neutral-600">
+              Team performance overview and actionable insights
+            </p>
+          </div>
+          <div className="hidden lg:block bg-neutral-50 border border-neutral-200 p-3 rounded-lg max-w-sm">
+            <p className="text-[10px] uppercase tracking-wider font-bold text-neutral-400 mb-1">
+              Foundational Data Layer
+            </p>
+            <p className="text-xs text-neutral-600 leading-tight">
+              Powered by official <strong>GRID GraphQL APIs</strong>. Transforming raw data into actionable coaching intelligence.
+            </p>
+          </div>
         </div>
 
         {/* KPI Cards */}

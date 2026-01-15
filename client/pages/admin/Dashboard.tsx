@@ -47,11 +47,22 @@ export function AdminDashboard() {
   return (
     <MainLayout>
       <div className="p-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-black mb-2">Admin Console</h1>
-          <p className="text-neutral-600">
-            System administration and security monitoring
-          </p>
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-black mb-2">Admin Console</h1>
+            <p className="text-neutral-600">
+              System administration and security monitoring
+            </p>
+          </div>
+          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg max-w-md">
+            <h4 className="text-sm font-bold text-blue-800 mb-1 flex items-center gap-2">
+              <Shield size={16} />
+              Foundational Data Layer
+            </h4>
+            <p className="text-xs text-blue-700 leading-relaxed">
+              YOE integrates official GRID GraphQL APIs as a foundational data layer, transforming static and aggregated esports data into actionable intelligence using analytics, ML models, and explainable AI.
+            </p>
+          </div>
         </div>
 
         {/* Stats Grid */}
