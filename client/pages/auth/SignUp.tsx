@@ -3,9 +3,28 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { AuthForm, FormData } from "@/components/auth/AuthForm";
 
+/**
+ * Sign Up Page
+ * /auth/sign-up
+ * 
+ * Render SignUpPage
+ *   Display AuthHeader
+ *   Initialize form state: name, email, password, confirmPassword, role
+ *   OnSubmit:
+ *     Validate inputs
+ *     Ensure passwords match
+ *     Call POST /api/auth/register
+ *     If success:
+ *       Auto-login user
+ *       Redirect to /onboarding or /dashboard
+ *     Else:
+ *       Show validation error
+ */
 export function SignUp() {
   const navigate = useNavigate();
   const { register } = useAuth();
+  
+  // Form state: name, email, password, confirmPassword, role, loading, error
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
 
@@ -14,18 +33,32 @@ export function SignUp() {
     setIsLoading(true);
 
     try {
+      // Validate inputs
+      if (!data.fullName || !data.email || !data.password) {
+        throw new Error("All fields are required");
+      }
+
+      // Ensure passwords match
+      if (data.password !== data.confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
+
+      // Call POST /api/auth/register
       await register(
-        data.fullName || "",
+        data.fullName,
         data.email,
         data.password,
-        data.role || "Coach",
+        data.role || "Coach"
       );
+      
+      // Redirect to /dashboard (coach is the main dashboard)
       navigate("/coach");
     } catch (err) {
+      // Show validation error
       setError(
         err instanceof Error
           ? err.message
-          : "Failed to create account. Please try again.",
+          : "Failed to create account. Please try again."
       );
     } finally {
       setIsLoading(false);
@@ -35,7 +68,7 @@ export function SignUp() {
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-        {/* Header */}
+        {/* AuthHeader */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">YOE</h1>
           <p className="text-neutral-400">Competitive Intelligence Platform</p>
