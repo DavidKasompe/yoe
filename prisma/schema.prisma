@@ -50,6 +50,22 @@ model Team {
   drafts    Draft[]
   series    Series[]    @relation("TeamSeries")
   featureSnapshots TeamFeatureSnapshot[]
+  scoutingReports  ScoutingReport[]
+}
+
+model ScoutingReport {
+  id               String   @id @default(cuid())
+  teamId           String
+  team             Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  earlyGame        String
+  midGame          String
+  lateGame         String
+  weakRoles        String   // Store as JSON string ["support", "top"]
+  sidePreference   String?  // Blue/Red
+  aggressionScore  Float
+  timestamp        DateTime @default(now())
+
+  @@index([teamId, timestamp])
 }
 
 model Series {

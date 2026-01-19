@@ -1,7 +1,6 @@
 {
   "/page": "app/page.js",
   "/coach/page": "app/coach/page.js",
-  "/draft/page": "app/draft/page.js",
-  "/api/ingest/route": "app/api/ingest/route.js",
-  "/api/coach/team/[team_id]/overview/route": "app/api/coach/team/[team_id]/overview/route.js"
+  "/scout/page": "app/scout/page.js",
+  "/draft/page": "app/draft/page.js"
 }

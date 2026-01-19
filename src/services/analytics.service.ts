@@ -111,6 +111,64 @@ export class AnalyticsService {
     });
   }
 
+  async generateScoutingReport(teamId: string) {
+    const matches = await prisma.match.findMany({
+      where: { teamStats: { some: { teamId } } },
+      include: { teamStats: true, playerStats: { include: { player: true } } },
+      orderBy: { date: 'desc' },
+      take: 20,
+    });
+
+    if (matches.length === 0) return null;
+
+    // 1. Early Aggression Score (Based on Gold Diff at 15m and early kills)
+    const teamStats = await prisma.teamStats.findMany({
+      where: { matchId: { in: matches.map(m => m.id) }, teamId }
+    });
+    const avgGold15 = teamStats.reduce((acc, ts) => acc + ts.goldDiff15, 0) / matches.length;
+    const aggressionScore = avgGold15 > 1000 ? 0.9 : avgGold15 > 0 ? 0.6 : 0.3;
+    const earlyGame = aggressionScore > 0.7 ? "Aggressive" : "Controlled";
+
+    // 2. Mid Game Stability (Based on Gold Advantage conversion)
+    const midGame = avgGold15 > 1000 && matches.filter(m => m.winnerId === teamId).length < matches.length * 0.5 
+      ? "Unstable" : "Stable";
+
+    // 3. Late Game Discipline (Based on Objective control in long games)
+    const lateGame = "Disciplined"; // Simplified for now
+
+    // 4. Weak Role Detection (Highest death avg per role)
+    const roleDeaths: Record<string, { total: number, count: number }> = {};
+    const playerStats = await prisma.playerStats.findMany({
+      where: { matchId: { in: matches.map(m => m.id) }, player: { teamId } },
+      include: { player: true }
+    });
+
+    playerStats.forEach(ps => {
+      const role = ps.player.role;
+      if (!roleDeaths[role]) roleDeaths[role] = { total: 0, count: 0 };
+      roleDeaths[role].total += ps.deaths;
+      roleDeaths[role].count += 1;
+    });
+
+    const weakRoles = Object.entries(roleDeaths)
+      .map(([role, stats]) => ({ role, avg: stats.total / stats.count }))
+      .sort((a, b) => b.avg - a.avg)
+      .slice(0, 1)
+      .map(r => r.role);
+
+    return prisma.scoutingReport.create({
+      data: {
+        teamId,
+        earlyGame,
+        midGame,
+        lateGame,
+        weakRoles: JSON.stringify(weakRoles),
+        aggressionScore,
+        sidePreference: "Blue", // Placeholder
+      }
+    });
+  }
+
   private async generateLLMInsight(matchId: string, category: string, dataContext: any) {
     let explanation = '';
     if (category === 'Assistant Coach') {
