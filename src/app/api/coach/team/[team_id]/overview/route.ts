@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { verifyRole } from '@/lib/auth';
 
 export async function GET(
   req: NextRequest,
   { params }: { params: { team_id: string } }
 ) {
   try {
+    // RBAC: Coach, Admin
+    const auth = await verifyRole(req, ['Coach', 'Admin']);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error }, { status: auth.authenticated ? 403 : 401 });
+    }
+
     const { team_id } = params;
 
     // Resolve team (can be ID or Name for flexibility)

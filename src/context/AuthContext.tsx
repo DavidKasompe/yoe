@@ -65,8 +65,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const getAuthHeader = useCallback(() => {
-    if (!tokens?.accessToken) return {};
-    return { Authorization: `Bearer ${tokens.accessToken}` };
+    const storedTokens = JSON.parse(localStorage.getItem("authTokens") || "null");
+    const accessToken = tokens?.accessToken || storedTokens?.accessToken;
+    if (!accessToken) return {};
+    return { Authorization: `Bearer ${accessToken}` };
   }, [tokens]);
 
   const refreshSession = useCallback(async (): Promise<boolean> => {

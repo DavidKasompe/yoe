@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { useAuth } from "@/context/AuthContext";
 import {
   BarChart,
   Bar,
@@ -106,11 +107,18 @@ const RECENT_MATCHES = [
 export default function CoachDashboard() {
   const [kpis, setKpis] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { hasPermission } = useAuth();
 
   useEffect(() => {
     async function fetchKPIs() {
       try {
-        const response = await fetch('/api/coach/team/T1/overview');
+        const storedTokens = JSON.parse(localStorage.getItem("authTokens") || "null");
+        const headers: any = {};
+        if (storedTokens?.accessToken) {
+          headers['Authorization'] = `Bearer ${storedTokens.accessToken}`;
+        }
+
+        const response = await fetch('/api/coach/team/T1/overview', { headers });
         const data = await response.json();
         setKpis(data);
       } catch (error) {

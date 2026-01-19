@@ -167,6 +167,16 @@ model ChampionPool {
   @@unique([playerId, champion])
 }
 
+model ChampionProfile {
+  id               String @id @default(cuid())
+  champion         String @unique
+  pickFrequency    Int    @default(0)
+  winRate          Float  @default(0.0)
+  roleSynergy      String // JSON: { "Mid": ["Orianna", "Azir"], "Jungle": ["Lee Sin"] }
+  counterStats     String // JSON: { "Counters": ["LeBlanc"], "CounteredBy": ["Lissandra"] }
+  updatedAt        DateTime @updatedAt
+}
+
 model AIInsight {
   id          String   @id @default(cuid())
   matchId     String?

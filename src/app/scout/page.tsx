@@ -16,14 +16,22 @@ export default function ScoutingReportsPage() {
   const handleGenerateReport = async () => {
     setIsAnalyzing(true);
     try {
+      const storedTokens = JSON.parse(localStorage.getItem("authTokens") || "null");
+      const authHeader = storedTokens?.accessToken ? { 'Authorization': `Bearer ${storedTokens.accessToken}` } : {};
+
       const response = await fetch('/api/scout/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...authHeader
+        },
         body: JSON.stringify({ teamName: selectedOpponent })
       });
       if (response.ok) {
         // Fetch standardized report after generation
-        const reportResponse = await fetch(`/api/scout/report/${selectedOpponent}`);
+        const reportResponse = await fetch(`/api/scout/report/${selectedOpponent}`, {
+          headers: authHeader
+        });
         const data = await reportResponse.json();
         setReport(data);
       } else {
