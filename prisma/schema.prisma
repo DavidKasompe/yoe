@@ -1,0 +1,182 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String       @id @default(cuid())
+  username      String       @unique
+  email         String       @unique
+  password      String
+  firstName     String?
+  lastName      String?
+  role          String       @default("Coach")
+  profile       UserProfile?
+  auditLogs     AuditLog[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model UserProfile {
+  id      String @id @default(cuid())
+  userId  String @unique
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role    String @default("Coach")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  eventType   String
+  description String
+  ipAddress   String?
+  userAgent   String?
+  timestamp   DateTime @default(now())
+}
+
+model Team {
+  id        String      @id @default(cuid())
+  name      String      @unique
+  region    String?
+  league    String?
+  players   Player[]
+  wins      Match[]     @relation("MatchWinner")
+  stats     TeamStats[]
+  drafts    Draft[]
+  series    Series[]    @relation("TeamSeries")
+  featureSnapshots TeamFeatureSnapshot[]
+}
+
+model Series {
+  id             String    @id @default(cuid())
+  gridSeriesId   String    @unique
+  tournamentName String?
+  startTime      DateTime
+  format         String?   // Bo1, Bo3, Bo5
+  matches        Match[]
+  teams          Team[]    @relation("TeamSeries")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Player {
+  id           String         @id @default(cuid())
+  teamId       String
+  team         Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  role         String
+  identifier   String
+  stats        PlayerStats[]
+  championPool ChampionPool[]
+
+  @@unique([teamId, identifier])
+}
+
+model Match {
+  id             String        @id @default(cuid())
+  gridMatchId    String        @unique
+  seriesId       String?
+  series         Series?       @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  date           DateTime      @default(now())
+  patch          String?
+  duration       Int?
+  winnerId       String?
+  winner         Team?         @relation("MatchWinner", fields: [winnerId], references: [id], onDelete: SetNull)
+  formatType     String?
+  tournamentName String?
+  gameTitle      String?
+  playerStats    PlayerStats[]
+  teamStats      TeamStats[]
+  drafts         Draft[]
+  insights       AIInsight[]
+}
+
+model PlayerStats {
+  id               String @id @default(cuid())
+  matchId          String
+  match            Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  playerId         String
+  player           Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  kills            Int    @default(0)
+  deaths           Int    @default(0)
+  assists          Int    @default(0)
+  cs               Int    @default(0)
+  visionScore      Int    @default(0)
+  goldEarned       Int    @default(0)
+  positioningScore Float  @default(0.0)
+
+  @@unique([matchId, playerId])
+}
+
+model TeamStats {
+  id         String @id @default(cuid())
+  matchId    String
+  match      Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  teamId     String
+  team       Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  barons     Int    @default(0)
+  dragons    Int    @default(0)
+  towers     Int    @default(0)
+  goldDiff15 Int    @default(0)
+
+  @@unique([matchId, teamId])
+}
+
+model Draft {
+  id             String @id @default(cuid())
+  matchId        String
+  match          Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  teamId         String
+  team           Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  bans           String @default("[]") // Store as JSON string
+  picks          String @default("[]") // Store as JSON string
+  winProbability Float?
+
+  @@unique([matchId, teamId])
+}
+
+model ChampionPool {
+  id        String @id @default(cuid())
+  playerId  String
+  player    Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  champion  String
+  frequency Int    @default(0)
+  winRate   Float  @default(0.0)
+
+  @@unique([playerId, champion])
+}
+
+model AIInsight {
+  id          String   @id @default(cuid())
+  matchId     String?
+  match       Match?   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  category    String
+  explanation String
+  confidence  Float    @default(0.0)
+  timestamp   DateTime @default(now())
+}
+
+model ExtractedFeature {
+  id          String @id @default(cuid())
+  entityId    String
+  entityType  String
+  featureName String
+  value       Float
+}
+
+model TeamFeatureSnapshot {
+  id               String   @id @default(cuid())
+  teamId           String
+  team             Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  winRate          Float
+  objectiveControl Float
+  avgDeaths        Float
+  goldAdvantage    Float
+  timestamp        DateTime @default(now())
+
+  @@index([teamId, timestamp])
+}
