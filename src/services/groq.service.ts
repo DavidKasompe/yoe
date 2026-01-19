@@ -7,7 +7,7 @@ export class GroqService {
     this.model = process.env.GROQ_MODEL || 'llama-3.1-70b-versatile';
   }
 
-  async generateChatCompletion(systemPrompt: string, userPrompt: string): Promise<string> {
+  async generateChatCompletion(systemPrompt: string, userPrompt: string, temperature: number = 0.7): Promise<string> {
     if (!this.apiKey || this.apiKey === 'gsk_placeholder_key') {
       console.warn("Groq API key is missing or using placeholder. Returning mock response.");
       return "AI Insight: [Mock Response] Based on the current data, focus on objective control and early game scaling.";
@@ -26,7 +26,7 @@ export class GroqService {
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }
           ],
-          temperature: 0.7,
+          temperature: temperature,
           max_tokens: 500
         })
       });
