@@ -63,6 +63,7 @@ model ScoutingReport {
   weakRoles        String   // Store as JSON string ["support", "top"]
   sidePreference   String?  // Blue/Red
   aggressionScore  Float
+  explanation      String?  @default("Generating analysis...")
   timestamp        DateTime @default(now())
 
   @@index([teamId, timestamp])

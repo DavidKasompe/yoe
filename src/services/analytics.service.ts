@@ -156,6 +156,16 @@ export class AnalyticsService {
       .slice(0, 1)
       .map(r => r.role);
 
+    const scoutingProfile = {
+      earlyGame,
+      midGame,
+      lateGame,
+      weakRoles,
+      aggressionScore
+    };
+
+    const explanation = await this.generateScoutingExplanation(scoutingProfile);
+
     return prisma.scoutingReport.create({
       data: {
         teamId,
@@ -165,8 +175,33 @@ export class AnalyticsService {
         weakRoles: JSON.stringify(weakRoles),
         aggressionScore,
         sidePreference: "Blue", // Placeholder
+        explanation
       }
     });
+  }
+
+  private async generateScoutingExplanation(profile: any) {
+    const { earlyGame, midGame, lateGame, weakRoles, aggressionScore } = profile;
+    
+    let summary = `Based on recent performance data, this team exhibits a ${earlyGame.toLowerCase()} early-game presence. `;
+    
+    if (aggressionScore > 0.7) {
+      summary += `They frequently overcommit in early skirmishes, often seeking high-variance plays to snowball. `;
+    } else {
+      summary += `They prioritize objective security and vision control over aggressive trading in the first 15 minutes. `;
+    }
+
+    if (midGame === 'Unstable') {
+      summary += `A critical vulnerability exists in their mid-game transition; they tend to lose objective focus when holding a gold lead, creating openings for counter-play. `;
+    } else {
+      summary += `Their mid-game rotations are disciplined, showing strong coordination during neutral objective contests. `;
+    }
+
+    if (weakRoles.length > 0) {
+      summary += `Counter-strategies should focus on the ${weakRoles[0]} position, which has shown consistent susceptibility to targeted jungle pressure and dive coordination. `;
+    }
+
+    return summary;
   }
 
   private async generateLLMInsight(matchId: string, category: string, dataContext: any) {
