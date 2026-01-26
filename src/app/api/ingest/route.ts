@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GridService } from '@/services/grid.service';
 import { AnalyticsService } from '@/services/analytics.service';
+import { verifyRole } from '@/lib/auth';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
+    // RBAC check
+    const auth = await verifyRole(req, ['Coach', 'Admin']);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error }, { status: auth.authenticated ? 403 : 401 });
+    }
+
     const { match_id } = await req.json();
 
     if (!match_id) {
@@ -19,6 +28,7 @@ export async function POST(req: NextRequest) {
     }
 
     await analyticsService.analyzeMatch(match.id);
+    await analyticsService.updateChampionProfiles();
 
     return NextResponse.json({
       status: 'success',

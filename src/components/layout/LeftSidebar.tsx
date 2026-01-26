@@ -40,34 +40,34 @@ export function LeftSidebar({ onPlayerSelect, onTeamSelect }: SidebarProps) {
   };
 
   return (
-    <aside className="fixed left-0 top-16 bottom-0 w-56 bg-neutral-50 border-r border-neutral-200 overflow-y-auto hidden md:block">
-      <div className="p-6">
+    <aside className="fixed left-0 top-16 bottom-0 w-64 bg-sidebar-background border-r border-sidebar-border overflow-y-auto hidden md:block transition-all">
+      <div className="p-6 space-y-8">
         {/* Team Selection */}
-        <div className="mb-8">
+        <div>
           <button
             onClick={() => setExpandTeams(!expandTeams)}
-            className="flex items-center justify-between w-full mb-3"
+            className="flex items-center justify-between w-full mb-4 group"
           >
-            <h3 className="text-sm font-semibold text-black">Teams</h3>
+            <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-widest">Teams</h3>
             <ChevronDown
-              size={16}
+              size={14}
               className={cn(
-                "text-neutral-600 transition-transform",
+                "text-neutral-400 transition-transform duration-200",
                 expandTeams ? "rotate-0" : "-rotate-90",
               )}
             />
           </button>
           {expandTeams && (
-            <div className="space-y-2">
+            <div className="space-y-1">
               {SAMPLE_TEAMS.map((team) => (
                 <button
                   key={team}
                   onClick={() => handleTeamSelect(team)}
                   className={cn(
-                    "w-full text-left px-3 py-2 text-sm rounded transition-colors",
+                    "w-full text-left px-3 py-2.5 text-sm rounded-lg transition-all duration-200",
                     selectedTeam === team
-                      ? "bg-brown text-white font-medium"
-                      : "text-neutral-700 hover:bg-neutral-200",
+                      ? "bg-brown text-white font-semibold shadow-md shadow-brown/40"
+                      : "text-muted-foreground hover:bg-white/5 hover:text-foreground",
                   )}
                 >
                   {team}
@@ -78,31 +78,31 @@ export function LeftSidebar({ onPlayerSelect, onTeamSelect }: SidebarProps) {
         </div>
 
         {/* Player Selection */}
-        <div className="mb-8">
+        <div>
           <button
             onClick={() => setExpandPlayers(!expandPlayers)}
-            className="flex items-center justify-between w-full mb-3"
+            className="flex items-center justify-between w-full mb-4 group"
           >
-            <h3 className="text-sm font-semibold text-black">Players</h3>
+            <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-widest">Players</h3>
             <ChevronDown
-              size={16}
+              size={14}
               className={cn(
-                "text-neutral-600 transition-transform",
+                "text-neutral-400 transition-transform duration-200",
                 expandPlayers ? "rotate-0" : "-rotate-90",
               )}
             />
           </button>
           {expandPlayers && (
-            <div className="space-y-2">
+            <div className="space-y-1">
               {SAMPLE_PLAYERS.map((player) => (
                 <button
                   key={player}
                   onClick={() => handlePlayerSelect(player)}
                   className={cn(
-                    "w-full text-left px-3 py-2 text-sm rounded transition-colors",
+                    "w-full text-left px-3 py-2.5 text-sm rounded-lg transition-all duration-200",
                     selectedPlayer === player
-                      ? "bg-brown text-white font-medium"
-                      : "text-neutral-700 hover:bg-neutral-200",
+                      ? "bg-brown text-white font-semibold shadow-md shadow-brown/40"
+                      : "text-muted-foreground hover:bg-white/5 hover:text-foreground",
                   )}
                 >
                   {player}
@@ -114,27 +114,39 @@ export function LeftSidebar({ onPlayerSelect, onTeamSelect }: SidebarProps) {
 
         {/* Filter Section */}
         <div>
-          <h3 className="text-sm font-semibold text-black mb-3">Filters</h3>
-          <div className="space-y-3 text-sm">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                defaultChecked
-                className="w-4 h-4 mr-2 accent-brown"
-              />
-              <span className="text-neutral-700">Recent Matches</span>
+          <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-4">Filters</h3>
+          <div className="space-y-4 text-sm">
+            <label className="flex items-center group cursor-pointer">
+              <div className="relative flex items-center">
+                <input
+                  type="checkbox"
+                  defaultChecked
+                  className="peer h-4 w-4 cursor-pointer appearance-none rounded border border-neutral-700 bg-black checked:bg-brown checked:border-brown transition-all"
+                />
+                <svg className="absolute w-3 h-3 text-white hidden peer-checked:block left-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+              </div>
+              <span className="ml-3 text-muted-foreground group-hover:text-foreground transition-colors font-medium">Recent Matches</span>
             </label>
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                defaultChecked
-                className="w-4 h-4 mr-2 accent-brown"
-              />
-              <span className="text-neutral-700">Ranked Only</span>
+            <label className="flex items-center group cursor-pointer">
+              <div className="relative flex items-center">
+                <input
+                  type="checkbox"
+                  defaultChecked
+                  className="peer h-4 w-4 cursor-pointer appearance-none rounded border border-neutral-700 bg-black checked:bg-brown checked:border-brown transition-all"
+                />
+                <svg className="absolute w-3 h-3 text-white hidden peer-checked:block left-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+              </div>
+              <span className="ml-3 text-muted-foreground group-hover:text-foreground transition-colors font-medium">Ranked Only</span>
             </label>
-            <label className="flex items-center">
-              <input type="checkbox" className="w-4 h-4 mr-2 accent-brown" />
-              <span className="text-neutral-700">Show All Roles</span>
+            <label className="flex items-center group cursor-pointer">
+              <div className="relative flex items-center">
+                <input
+                  type="checkbox"
+                  className="peer h-4 w-4 cursor-pointer appearance-none rounded border border-neutral-700 bg-black checked:bg-brown checked:border-brown transition-all"
+                />
+                <svg className="absolute w-3 h-3 text-white hidden peer-checked:block left-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+              </div>
+              <span className="ml-3 text-muted-foreground group-hover:text-foreground transition-colors font-medium">Show All Roles</span>
             </label>
           </div>
         </div>

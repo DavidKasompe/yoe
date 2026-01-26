@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { AnalyticsService } from '@/services/analytics.service';
+import { verifyRole } from '@/lib/auth';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
+    // RBAC: Coach, Analyst, Admin
+    const auth = await verifyRole(req, ['Coach', 'Analyst', 'Admin']);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error }, { status: auth.authenticated ? 403 : 401 });
+    }
+
     const { teamName } = await req.json();
 
     const team = await prisma.team.findUnique({
@@ -31,6 +40,12 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    // RBAC: Coach, Analyst, Admin
+    const auth = await verifyRole(req, ['Coach', 'Analyst', 'Admin']);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error }, { status: auth.authenticated ? 403 : 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const teamName = searchParams.get('teamName');
 

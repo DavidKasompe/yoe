@@ -1,6 +1,9 @@
 {
-  "/page": "app/page.js",
-  "/draft/page": "app/draft/page.js",
+  "/auth/sign-in/page": "app/auth/sign-in/page.js",
+  "/auth/sign-up/page": "app/auth/sign-up/page.js",
   "/scout/page": "app/scout/page.js",
-  "/coach/page": "app/coach/page.js"
+  "/api/live/[id]/route": "app/api/live/[id]/route.js",
+  "/coach/page": "app/coach/page.js",
+  "/draft/page": "app/draft/page.js",
+  "/api/history/route": "app/api/history/route.js"
 }

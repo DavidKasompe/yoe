@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyRole } from '@/lib/auth';
 import { GroqService } from '@/services/groq.service';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
     // RBAC check: Only Coach, Analyst, or Admin can access LLM features
@@ -17,10 +19,17 @@ export async function POST(req: NextRequest) {
     }
 
     const groq = new GroqService();
-    const systemPrompt = "You are a professional esports analyst.";
+    const systemPrompt = `You are an assistant coach. 
+Explain the following structured insights in professional coaching language. 
+Do NOT invent data. 
+Explain ONLY what is supported by the provided INSIGHTS.
+Translate the tactical signals into a concise, professional summary for the head coach.`;
     
+    const userPrompt = `INSIGHTS:
+${analysis_payload}`;
+
     // Using temperature 0.4 as per the Django-based prompt instructions
-    const explanation = await groq.generateChatCompletion(systemPrompt, analysis_payload, 0.4);
+    const explanation = await groq.generateChatCompletion(systemPrompt, userPrompt, 0.4);
 
     return NextResponse.json({ explanation });
 

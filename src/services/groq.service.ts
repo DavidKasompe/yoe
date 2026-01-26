@@ -8,7 +8,8 @@ export class GroqService {
   }
 
   async generateChatCompletion(systemPrompt: string, userPrompt: string, temperature: number = 0.7): Promise<string> {
-    if (!this.apiKey || this.apiKey === 'gsk_placeholder_key') {
+    const key = process.env.GROQ_API_KEY || this.apiKey;
+    if (!key || key === 'gsk_placeholder_key') {
       console.warn("Groq API key is missing or using placeholder. Returning mock response.");
       return "AI Insight: [Mock Response] Based on the current data, focus on objective control and early game scaling.";
     }
@@ -17,7 +18,7 @@ export class GroqService {
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          'Authorization': `Bearer ${key}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({

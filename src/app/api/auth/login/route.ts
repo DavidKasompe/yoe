@@ -59,13 +59,13 @@ export async function POST(req: NextRequest) {
     const accessToken = await new SignJWT({ userId: user.id, email: user.email, role: user.role })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
-      .setExpirationTime('1h')
+      .setExpirationTime('24h')
       .sign(JWT_SECRET);
 
     const refreshToken = await new SignJWT({ userId: user.id })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
-      .setExpirationTime('7d')
+      .setExpirationTime('30d')
       .sign(JWT_SECRET);
 
     // Return the same structure as Django was returning

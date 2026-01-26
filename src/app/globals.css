@@ -10,51 +10,51 @@
    * A different format will require also updating the theme in tailwind.config.ts.
   */
   :root {
-    /* YOE Design System - Black, Deep Brown, Neutral */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 0%;
+    /* YOE Design System - Black, Deep Brown, Neutral (Dark Mode First) */
+    --background: 0 0% 0%; /* #000000 */
+    --foreground: 0 0% 95%;
 
-    --card: 0 0% 98%;
-    --card-foreground: 0 0% 0%;
+    --card: 0 0% 8%; /* #141414 */
+    --card-foreground: 0 0% 95%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 0%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 0 0% 0%;
+    --primary: 15 25% 21%; /* #3B2F2F - Deep Brown */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 25 40% 45%;
+    --secondary: 12 25% 25%; /* #4E342E - Darker Brown */
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 80%;
-    --muted-foreground: 0 0% 40%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 55%;
 
-    --accent: 25 40% 45%;
+    --accent: 15 25% 21%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 95%;
-    --ring: 0 0% 0%;
+    --border: 0 0% 14%;
+    --input: 0 0% 10%;
+    --ring: 15 25% 21%;
 
-    --radius: 0.5rem;
+    --radius: 1rem;
 
     /* Sidebar colors */
-    --sidebar-background: 0 0% 96%;
-    --sidebar-foreground: 0 0% 20%;
-    --sidebar-primary: 0 0% 0%;
+    --sidebar-background: 0 0% 4%;
+    --sidebar-foreground: 0 0% 80%;
+    --sidebar-primary: 15 25% 21%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 25 40% 45%;
+    --sidebar-accent: 0 0% 12%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 0 0% 85%;
-    --sidebar-ring: 0 0% 0%;
+    --sidebar-border: 0 0% 10%;
+    --sidebar-ring: 15 25% 21%;
 
     /* YOE specific colors */
-    --brown: 25 40% 45%;
-    --brown-light: 25 40% 60%;
-    --brown-lighter: 25 40% 75%;
+    --brown: 15 25% 21%;
+    --brown-light: 15 25% 35%;
+    --brown-lighter: 15 25% 50%;
 
     /* Neutral grays */
     --neutral-50: 0 0% 98%;

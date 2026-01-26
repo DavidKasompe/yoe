@@ -1,343 +1,520 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { useAuth } from "@/context/AuthContext";
-import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
-import { ArrowUp, ArrowDown, TrendingUp } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Zap, TrendingUp, ArrowUpRight, ArrowDownRight, Shield, Sword, Users, Eye, Crown, RefreshCw } from "lucide-react";
 
-const KPI_DATA = [
-  {
-    label: "Win Rate",
-    value: "58.3%",
-    change: "+2.1%",
-    isPositive: true,
-    icon: TrendingUp,
-  },
-  {
-    label: "Objective Control",
-    value: "72%",
-    change: "+5.2%",
-    isPositive: true,
-    icon: TrendingUp,
-  },
-  {
-    label: "Deaths Per Game",
-    value: "3.2",
-    change: "-0.8",
-    isPositive: true,
-    icon: ArrowDown,
-  },
-  {
-    label: "Gold Advantage",
-    value: "+2.4k",
-    change: "+0.5k",
-    isPositive: true,
-    icon: TrendingUp,
-  },
-];
+// SVG Lane Icons
+const LaneIcons = {
+  Top: () => (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+      <path d="M3 3h7v7H3V3zm11 0h7v3h-7V3zm0 5h7v3h-7V8zm0 5h7v8h-4v-5h-3v-3zm-11 3h7v5H3v-5zm0-5h3v3H3v-3z" />
+    </svg>
+  ),
+  Jungle: () => (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+      <path d="M12 2L4 7v10l8 5 8-5V7l-8-5zm0 2.5L18 8v8l-6 3.75L6 16V8l6-3.5z" />
+    </svg>
+  ),
+  Mid: () => (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+      <path d="M3 3h18v3H6v4h12v4H6v4h15v3H3V3z" />
+    </svg>
+  ),
+  Bot: () => (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+      <path d="M3 3h7v3H3V3zm0 5h3v3H3V8zm0 5h3v3H3v-3zm0 5h7v3H3v-3zm11-15h7v8h-4v-5h-3V3zm0 11h7v7h-7v-7z" />
+    </svg>
+  ),
+  Support: () => (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+    </svg>
+  ),
+  ADC: () => (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+      <path d="M12 2L2 12l10 10 10-10L12 2zm0 3l7 7-7 7-7-7 7-7z" />
+    </svg>
+  ),
+};
 
-const MATCH_HISTORY = [
-  { week: "Week 1", wins: 4, losses: 2 },
-  { week: "Week 2", wins: 3, losses: 1 },
-  { week: "Week 3", wins: 5, losses: 2 },
-  { week: "Week 4", wins: 6, losses: 1 },
-  { week: "Week 5", wins: 4, losses: 3 },
-  { week: "Week 6", wins: 5, losses: 2 },
-];
+const getRoleIcon = (role: string) => {
+  const roleMap: Record<string, keyof typeof LaneIcons> = {
+    'Top': 'Top',
+    'Jungle': 'Jungle', 
+    'Mid': 'Mid',
+    'ADC': 'Bot',
+    'Bot': 'Bot',
+    'Support': 'Support',
+  };
+  return LaneIcons[roleMap[role] || 'Mid'];
+};
 
-const ROLE_DISTRIBUTION = [
-  { name: "Top", value: 18, fill: "#3d3d3d" },
-  { name: "Jungle", value: 22, fill: "#666666" },
-  { name: "Mid", value: 20, fill: "#999999" },
-  { name: "ADC", value: 19, fill: "#3d4040" },
-  { name: "Support", value: 21, fill: "#737373" },
-];
+// Sparkline component for mini trends
+const Sparkline = ({ data, color = "#c9a66b", height = 40 }: { data: number[], color?: string, height?: number }) => {
+  if (!data || data.length < 2) return null;
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const range = max - min || 1;
+  const width = 100;
+  const points = data.map((val, i) => {
+    const x = (i / (data.length - 1)) * width;
+    const y = height - ((val - min) / range) * height;
+    return `${x},${y}`;
+  }).join(' ');
 
-const RECENT_MATCHES = [
-  {
-    opponent: "Team Gamma",
-    result: "WIN",
-    date: "Today",
-    duration: "32:14",
-    kills: 12,
-    deaths: 4,
-  },
-  {
-    opponent: "Team Delta",
-    result: "LOSS",
-    date: "Yesterday",
-    duration: "28:45",
-    kills: 8,
-    deaths: 6,
-  },
-  {
-    opponent: "Team Beta",
-    result: "WIN",
-    date: "2 days ago",
-    duration: "35:22",
-    kills: 14,
-    deaths: 3,
-  },
-  {
-    opponent: "Team Alpha",
-    result: "WIN",
-    date: "3 days ago",
-    duration: "31:08",
-    kills: 11,
-    deaths: 5,
-  },
-];
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full absolute inset-0 opacity-30">
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+};
+
+// Circular progress ring
+const ProgressRing = ({ value, size = 120, strokeWidth = 8, color = "#c9a66b" }: { value: number, size?: number, strokeWidth?: number, color?: string }) => {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (Math.min(value, 100) / 100) * circumference;
+
+  return (
+    <svg width={size} height={size} className="transform -rotate-90">
+      <defs>
+        <linearGradient id={`ringGrad-${color}`} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor={color} />
+          <stop offset="100%" stopColor={color} stopOpacity="0.3" />
+        </linearGradient>
+      </defs>
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="rgba(255,255,255,0.1)"
+        strokeWidth={strokeWidth}
+      />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke={`url(#ringGrad-${color})`}
+        strokeWidth={strokeWidth}
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+        className="transition-all duration-1000 ease-out"
+      />
+    </svg>
+  );
+};
+
+// Glassmorphism card wrapper
+const GlassCard = ({ children, className = "", glow = false }: { children: React.ReactNode, className?: string, glow?: boolean }) => (
+  <div className={`relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/10 overflow-hidden ${glow ? 'shadow-lg shadow-brown/20' : ''} ${className}`}>
+    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+    <div className="relative z-10 h-full">{children}</div>
+  </div>
+);
+
+interface LiveData {
+  seriesId: string;
+  isLive: boolean;
+  gameNumber: number;
+  gameTime?: string;
+  teams: Array<{
+    name: string;
+    win: boolean;
+    kills: number;
+    gold: number;
+    towers: number;
+    dragons: number;
+    barons: number;
+    heralds?: number;
+    players: Array<{
+      name: string;
+      stats: {
+        kills?: number;
+        deaths?: number;
+        assists?: number;
+        cs?: number;
+        gold?: number;
+        role?: string;
+      };
+    }>;
+  }>;
+}
 
 export default function CoachDashboard() {
-  const [kpis, setKpis] = useState<any>(null);
+  const [liveData, setLiveData] = useState<LiveData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { hasPermission } = useAuth();
+  const [isExplaining, setIsExplaining] = useState(false);
+  const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  
+  // Historical data for sparklines
+  const [goldHistory, setGoldHistory] = useState<number[]>([]);
+  const [killsHistory, setKillsHistory] = useState<number[]>([]);
+  const [performanceHistory, setPerformanceHistory] = useState<number[]>([]);
 
-  useEffect(() => {
-    async function fetchKPIs() {
-      try {
-        const storedTokens = JSON.parse(localStorage.getItem("authTokens") || "null");
-        const headers: any = {};
-        if (storedTokens?.accessToken) {
-          headers['Authorization'] = `Bearer ${storedTokens.accessToken}`;
-        }
-
-        const response = await fetch('/api/coach/team/T1/overview', { headers });
-        const data = await response.json();
-        setKpis(data);
-      } catch (error) {
-        console.error('Failed to fetch KPIs:', error);
-      } finally {
-        setIsLoading(false);
+  const fetchLiveGame = useCallback(async () => {
+    try {
+      const res = await fetch('/api/live/3');
+      const data = await res.json();
+      setLiveData(data);
+      setLastUpdated(new Date());
+      
+      // Update historical data for sparklines
+      if (data?.teams?.[0]) {
+        const goldDiff = (data.teams[0].gold - data.teams[1].gold) / 1000;
+        setGoldHistory(prev => [...prev.slice(-9), goldDiff]);
+        setKillsHistory(prev => [...prev.slice(-9), data.teams[0].kills]);
+        
+        // Performance score based on objectives and kills
+        const perfScore = (data.teams[0].kills * 2) + (data.teams[0].towers * 5) + (data.teams[0].dragons * 3) + (data.teams[0].barons * 10);
+        setPerformanceHistory(prev => [...prev.slice(-14), perfScore]);
       }
+    } catch (e) {
+      console.error("Failed to fetch live data", e);
+    } finally {
+      setIsLoading(false);
     }
-    fetchKPIs();
   }, []);
 
-  const kpiDisplayData = [
-    {
-      label: "Win Rate",
-      value: (kpis?.win_rate || "0") + "%",
-      change: kpis?.trend_deltas?.win_rate || "+0.0%",
-      isPositive: !(kpis?.trend_deltas?.win_rate?.startsWith('-')),
-      icon: TrendingUp,
-    },
-    {
-      label: "Objective Control",
-      value: (kpis?.objective_control || "0") + "%",
-      change: kpis?.trend_deltas?.objective_control || "+0.0%",
-      isPositive: !(kpis?.trend_deltas?.objective_control?.startsWith('-')),
-      icon: TrendingUp,
-    },
-    {
-      label: "Deaths Per Game",
-      value: kpis?.deaths_per_game || "0",
-      change: kpis?.trend_deltas?.deaths_per_game || "+0.0",
-      isPositive: kpis?.trend_deltas?.deaths_per_game?.startsWith('-'), // Fewer deaths is good
-      icon: ArrowDown,
-    },
-    {
-      label: "Gold Advantage",
-      value: (kpis?.gold_advantage !== undefined ? (kpis.gold_advantage >= 0 ? "+" : "") + (kpis.gold_advantage / 1000).toFixed(1) + "k" : "0k"),
-      change: kpis?.trend_deltas?.gold_advantage || "+0.0k",
-      isPositive: !(kpis?.trend_deltas?.gold_advantage?.startsWith('-')),
-      icon: TrendingUp,
-    },
+  useEffect(() => {
+    fetchLiveGame();
+    // Poll every 10 seconds for real-time updates
+    const interval = setInterval(fetchLiveGame, 10000);
+    return () => clearInterval(interval);
+  }, [fetchLiveGame]);
+
+  const handleExplainMatch = async () => {
+    setIsExplaining(true);
+    setTimeout(() => {
+      if (!liveData?.teams?.[0]) {
+        setAiInsight("Unable to analyze - no live data available.");
+        setIsExplaining(false);
+        return;
+      }
+      
+      const team = liveData.teams[0];
+      const enemy = liveData.teams[1];
+      const goldDiff = (team.gold - enemy.gold) / 1000;
+      const killDiff = team.kills - enemy.kills;
+      const objDiff = (team.dragons + team.towers + (team.barons || 0)) - (enemy.dragons + enemy.towers + (enemy.barons || 0));
+      
+      let insight = `${team.name} `;
+      if (goldDiff > 0) {
+        insight += `holds a ${goldDiff.toFixed(1)}k gold lead. `;
+      } else {
+        insight += `trails by ${Math.abs(goldDiff).toFixed(1)}k gold. `;
+      }
+      
+      if (killDiff > 3) {
+        insight += `Strong kill advantage (+${killDiff}). `;
+      }
+      
+      if (objDiff > 0) {
+        insight += `Objective control is favorable. `;
+      }
+      
+      // Find the carry
+      const carry = team.players.reduce((best, p) => 
+        (p.stats.kills || 0) > (best?.stats.kills || 0) ? p : best
+      , team.players[0]);
+      
+      if (carry) {
+        insight += `${carry.name} is carrying (${carry.stats.kills}/${carry.stats.deaths}/${carry.stats.assists}). `;
+      }
+      
+      insight += `Recommend ${goldDiff > 3 ? 'forcing Baron at next spawn' : 'playing for objectives to extend the lead'}.`;
+      
+      setAiInsight(insight);
+      setIsExplaining(false);
+    }, 1500);
+  };
+
+  const teams = liveData?.teams || [];
+  const ourTeam = teams[0] || { kills: 0, gold: 0, towers: 0, dragons: 0, barons: 0, heralds: 0, players: [] };
+  const enemyTeam = teams[1] || { kills: 0, gold: 0, towers: 0, dragons: 0, barons: 0, heralds: 0, players: [] };
+
+  // Calculate metrics from live data
+  const goldDiff = ((ourTeam.gold - enemyTeam.gold) / 1000).toFixed(1);
+  const goldDiffNum = Number(goldDiff);
+  const isGoldPositive = goldDiffNum >= 0;
+  
+  const totalObjOurs = ourTeam.towers + ourTeam.dragons + (ourTeam.barons || 0);
+  const totalObjEnemy = enemyTeam.towers + enemyTeam.dragons + (enemyTeam.barons || 0);
+  const objControl = totalObjOurs + totalObjEnemy > 0 
+    ? Math.round((totalObjOurs / (totalObjOurs + totalObjEnemy)) * 100) 
+    : 50;
+
+  // Calculate team KDA
+  const teamKills = ourTeam.kills;
+  const teamDeaths = enemyTeam.kills;
+  const teamAssists = ourTeam.players.reduce((sum, p) => sum + (p.stats.assists || 0), 0);
+  const teamKDA = teamDeaths > 0 ? ((teamKills + teamAssists) / teamDeaths).toFixed(1) : "Perfect";
+
+  // Resource usage (based on gold efficiency)
+  const totalGoldOurs = ourTeam.players.reduce((sum, p) => sum + (p.stats.gold || 0), 0);
+  const avgGold = totalGoldOurs / (ourTeam.players.length || 1);
+  const resourceUsage = Math.min(Math.round((avgGold / 15000) * 100), 100);
+
+  // Win probability calculation (simplified)
+  const winProbability = Math.min(Math.max(
+    50 + (goldDiffNum * 2) + ((teamKills - teamDeaths) * 1.5) + ((objControl - 50) * 0.5),
+    10
+  ), 90);
+
+  const roster = ourTeam.players.map((p) => ({
+    role: p.stats.role || "Mid",
+    name: `${ourTeam.name || 'T1'} ${p.name}`,
+    kda: `${p.stats.kills || 0}/${p.stats.deaths || 0}/${p.stats.assists || 0}`,
+    cs: p.stats.cs || 0,
+    gold: p.stats.gold || 0,
+    ult: Math.random() > 0.3, // Simulated - would come from real data
+  }));
+
+  const coachingActions = [
+    { label: "Review Draft", urgent: false },
+    { label: "Call Baron", urgent: totalObjOurs >= 3 && ourTeam.barons === 0 },
+    { label: "Ping Dragon", urgent: ourTeam.dragons < 3 },
+    { label: "Check Vision", urgent: false },
+    { label: "Review Fights", urgent: teamDeaths > teamKills },
   ];
 
-  const matchHistoryData = kpis?.match_history || MATCH_HISTORY;
+  if (isLoading && !liveData) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-screen bg-[#0a0a0f]">
+          <div className="text-neutral-500 animate-pulse flex items-center gap-3">
+            <RefreshCw className="animate-spin" size={20} />
+            Connecting to GRID Live Feed...
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
-      <div className="max-w-7xl">
-        {/* Page Header */}
-        <div className="mb-8 flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold text-black mb-2">
-              Assistant Coach Dashboard
-            </h1>
-            <p className="text-neutral-600">
-              Overview of team performance and AI coaching insights
-            </p>
+      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0f] via-[#0f0f18] to-[#0a0a0f] -m-10 p-8">
+        <div className="max-w-[1400px] mx-auto">
+          
+          {/* Header */}
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-white">ASSISTANT COACH DASHBOARD</h1>
+              <div className="flex items-center gap-3 mt-1">
+                <div className="flex items-center gap-1.5">
+                  <div className="relative">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-ping absolute" />
+                    <div className="w-2 h-2 rounded-full bg-green-500" />
+                  </div>
+                  <span className="text-xs text-green-400 font-semibold">LIVE</span>
+                </div>
+                <span className="text-xs text-neutral-500">
+                  {ourTeam.name || 'T1'} vs {enemyTeam.name || 'Gen.G'} • Game {liveData?.gameNumber || 1}
+                </span>
+                {lastUpdated && (
+                  <span className="text-[10px] text-neutral-600">
+                    Updated {lastUpdated.toLocaleTimeString()}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={fetchLiveGame}
+                className="p-2.5 rounded-xl border border-white/10 hover:bg-white/5 transition-all"
+                title="Refresh"
+              >
+                <RefreshCw size={16} className="text-neutral-400" />
+              </button>
+              <button
+                onClick={handleExplainMatch}
+                disabled={isExplaining}
+                className="px-5 py-2.5 bg-gradient-to-r from-brown to-brown-light hover:from-brown-light hover:to-brown text-white text-sm font-semibold rounded-xl transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                <Zap size={16} className={isExplaining ? 'animate-pulse' : ''} />
+                {isExplaining ? 'ANALYZING...' : 'EXPLAIN MATCH'}
+              </button>
+            </div>
           </div>
-          <button 
-            onClick={async () => {
-              setIsLoading(true);
-              await fetch('/api/ingest', { method: 'POST', body: JSON.stringify({ matchId: 'mock-match-id' }) });
-              // Re-fetch
-              const response = await fetch('/api/coach/team/T1/overview');
-              const data = await response.json();
-              setKpis(data);
-              setIsLoading(false);
-            }}
-            className="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors"
-          >
-            {isLoading ? 'Processing...' : 'Refresh Data'}
-          </button>
-        </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {kpiDisplayData.map((kpi) => (
-            <div
-              key={kpi.label}
-              className="bg-neutral-50 border border-neutral-200 p-6 rounded-lg"
-            >
+          {/* AI Insight */}
+          {aiInsight && (
+            <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-brown/20 to-brown-light/10 border border-brown/30">
+              <div className="flex items-center gap-2 mb-2">
+                <Zap size={14} className="text-brown-light" />
+                <span className="text-xs font-semibold text-brown-light uppercase tracking-wider">AI Strategic Insight</span>
+              </div>
+              <p className="text-neutral-200 text-sm">{aiInsight}</p>
+            </div>
+          )}
+
+          {/* Bento Grid Layout */}
+          <div className="grid grid-cols-12 gap-4">
+            
+            {/* Win Probability - Large Square */}
+            <GlassCard className="col-span-12 md:col-span-4 lg:col-span-3 p-6" glow>
               <div className="flex justify-between items-start mb-4">
-                <span className="text-sm font-medium text-neutral-600">
-                  {kpi.label}
-                </span>
-                <kpi.icon
-                  size={18}
-                  className={kpi.isPositive ? "text-green-600" : "text-red-600"}
-                />
+                <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Win Probability</span>
+                <div className={`flex items-center gap-1 ${winProbability > 50 ? 'text-brown-light' : 'text-red-400'} text-xs font-semibold`}>
+                  {winProbability > 50 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                  {winProbability > 50 ? '+' : ''}{(winProbability - 50).toFixed(0)}%
+                </div>
               </div>
-              <div className="flex items-end gap-3">
-                <span className="text-2xl font-bold text-black">
-                  {kpi.value}
-                </span>
-                <span
-                  className={cn(
-                    "text-xs font-medium mb-1",
-                    kpi.isPositive ? "text-green-600" : "text-red-600",
-                  )}
-                >
-                  {kpi.change}
-                </span>
+              <div className="flex items-center justify-center py-4">
+                <div className="relative">
+                  <ProgressRing value={winProbability} size={140} strokeWidth={10} color={winProbability > 50 ? "#c9a66b" : "#ef4444"} />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-3xl font-bold text-white">{winProbability.toFixed(0)}%</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            </GlassCard>
 
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Win/Loss History */}
-          <div className="bg-white border border-neutral-200 p-6 rounded-lg">
-            <h3 className="text-lg font-bold text-black mb-6">
-              Match History (Last 6 Weeks)
-            </h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={matchHistoryData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="week" axisLine={false} tickLine={false} />
-                  <YAxis axisLine={false} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
-                  />
-                  <Legend verticalAlign="top" align="right" />
-                  <Bar dataKey="wins" name="Wins" fill="#3d3d3d" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="losses" name="Losses" fill="#a3a3a3" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+            {/* Objective Control */}
+            <GlassCard className="col-span-6 md:col-span-4 lg:col-span-3 p-6">
+              <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Objective Control</span>
+              <div className="flex items-center justify-center py-6">
+                <div className="relative">
+                  <ProgressRing value={objControl} size={100} strokeWidth={8} color="#d4af71" />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-2xl font-bold text-white">{objControl}%</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-center gap-4 text-xs text-neutral-500 mt-2">
+                <span>🗼 {ourTeam.towers}</span>
+                <span>🐉 {ourTeam.dragons}</span>
+                <span>👑 {ourTeam.barons || 0}</span>
+              </div>
+            </GlassCard>
 
-          {/* Performance Distribution */}
-          <div className="bg-white border border-neutral-200 p-6 rounded-lg">
-            <h3 className="text-lg font-bold text-black mb-6">
-              Carry Potential by Role
-            </h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={ROLE_DISTRIBUTION}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={5}
-                    dataKey="value"
+            {/* Gold Diff with Sparkline */}
+            <GlassCard className="col-span-6 md:col-span-4 lg:col-span-6 p-6">
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Gold Difference</span>
+                <div className="flex items-center gap-2 text-xs text-neutral-500">
+                  <div className="w-2 h-0.5 bg-yellow-500"></div>
+                  vs {enemyTeam.name || 'Enemy'}
+                </div>
+              </div>
+              <div className="relative h-20">
+                <Sparkline data={goldHistory} color="#eab308" height={80} />
+                <div className="absolute bottom-0 left-0">
+                  <span className={`text-3xl font-bold ${isGoldPositive ? 'text-brown-light' : 'text-red-400'}`}>
+                    {isGoldPositive ? '+' : ''}{goldDiff}k
+                  </span>
+                </div>
+              </div>
+            </GlassCard>
+
+            {/* Team Roster */}
+            <GlassCard className="col-span-12 md:col-span-6 lg:col-span-3 p-5">
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Team Roster</span>
+                <span className="text-[10px] text-neutral-600">KDA</span>
+              </div>
+              <div className="space-y-2">
+                {roster.map((player, i) => {
+                  const RoleIcon = getRoleIcon(player.role);
+                  return (
+                    <div key={i} className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-neutral-400">
+                        <RoleIcon />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-white text-sm font-medium truncate block">{player.name.split(' ').pop()}</span>
+                      </div>
+                      <span className="text-xs text-neutral-400 font-mono">{player.kda}</span>
+                      <span className="text-[10px] text-neutral-600">{player.cs} CS</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </GlassCard>
+
+            {/* Performance Signal - Wide */}
+            <GlassCard className="col-span-12 md:col-span-6 lg:col-span-6 p-6">
+              <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4 block">Performance Signal</span>
+              <div className="h-32 relative">
+                {performanceHistory.length > 1 && (
+                  <svg viewBox="0 0 300 80" className="w-full h-full">
+                    <defs>
+                      <linearGradient id="perfGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#c9a66b" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="#c9a66b" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    {/* Area fill */}
+                    <path
+                      d={`M0,80 ${performanceHistory.map((v, i) => `L${i * (300 / (performanceHistory.length - 1))},${80 - (v / Math.max(...performanceHistory)) * 70}`).join(' ')} L300,80 Z`}
+                      fill="url(#perfGradient)"
+                    />
+                    {/* Line */}
+                    <path
+                      d={`M0,${80 - (performanceHistory[0] / Math.max(...performanceHistory)) * 70} ${performanceHistory.map((v, i) => `L${i * (300 / (performanceHistory.length - 1))},${80 - (v / Math.max(...performanceHistory)) * 70}`).join(' ')}`}
+                      fill="none"
+                      stroke="#c9a66b"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                )}
+              </div>
+            </GlassCard>
+
+            {/* Live Kills with Sparkline */}
+            <GlassCard className="col-span-6 md:col-span-4 lg:col-span-3 p-6">
+              <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Live Kills</span>
+              <div className="relative h-24 mt-2">
+                <Sparkline data={killsHistory} color="#c9a66b" height={60} />
+                <div className="absolute bottom-0 left-0">
+                  <span className="text-4xl font-bold text-white">{ourTeam.kills}</span>
+                  <span className="text-lg text-neutral-500 ml-1">/ {enemyTeam.kills}</span>
+                </div>
+              </div>
+            </GlassCard>
+
+            {/* Coaching Actions */}
+            <GlassCard className="col-span-12 md:col-span-8 lg:col-span-6 p-5">
+              <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4 block">Coaching Actions</span>
+              <div className="flex flex-wrap gap-2">
+                {coachingActions.map((action, i) => (
+                  <button
+                    key={i}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      action.urgent 
+                        ? 'bg-brown/20 border border-brown/40 text-brown-light hover:bg-brown/30' 
+                        : 'bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 hover:border-white/20'
+                    }`}
                   >
-                    {ROLE_DISTRIBUTION.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Matches Table */}
-        <div className="bg-white border border-neutral-200 rounded-lg overflow-hidden">
-          <div className="p-6 border-b border-neutral-200 flex justify-between items-center">
-            <h3 className="text-lg font-bold text-black">Recent Matches</h3>
-            <button className="text-sm text-brown font-medium hover:underline">
-              View All
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-neutral-50 border-b border-neutral-200">
-                  <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">
-                    Opponent
-                  </th>
-                  <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">
-                    Result
-                  </th>
-                  <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">
-                    Duration
-                  </th>
-                  <th className="px-6 py-4 text-xs font-bold text-neutral-500 uppercase tracking-wider">
-                    K/D
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-200">
-                {RECENT_MATCHES.map((match, idx) => (
-                  <tr key={idx} className="hover:bg-neutral-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-black">
-                      {match.opponent}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={cn(
-                          "px-2 py-1 text-xs font-bold rounded",
-                          match.result === "WIN"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700",
-                        )}
-                      >
-                        {match.result}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-neutral-600">
-                      {match.date}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-neutral-600">
-                      {match.duration}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-neutral-600">
-                      {match.kills}/{match.deaths}
-                    </td>
-                  </tr>
+                    {action.label}
+                  </button>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </GlassCard>
+
+            {/* Team KDA */}
+            <GlassCard className="col-span-6 md:col-span-4 lg:col-span-3 p-6">
+              <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Team KDA</span>
+              <div className="flex items-center justify-center py-6">
+                <span className="text-4xl font-bold text-white">{teamKDA}</span>
+              </div>
+              <div className="text-center text-xs text-neutral-500">
+                {teamKills}K / {teamDeaths}D / {teamAssists}A
+              </div>
+            </GlassCard>
+
           </div>
         </div>
       </div>

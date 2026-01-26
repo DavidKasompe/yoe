@@ -10,8 +10,6 @@ export class GridService {
 
   async ingestMatch(gridMatchId: string) {
     console.log(`Ingesting match from GRID: ${gridMatchId}...`);
-
-    // 1. Fetch data from GRID APIs
     const seriesResponse = await this.client.getSeriesContext(gridMatchId);
     const matchStats = await this.client.getMatchStats(gridMatchId);
 

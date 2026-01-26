@@ -26,8 +26,8 @@ export function TopNav() {
     <nav className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-neutral-200 z-50">
       <div className="h-full flex items-center justify-between px-6">
         <div className="flex items-center gap-8">
-          <Link href="/" className="font-bold text-xl text-black">
-            YOE
+          <Link href="/" className="flex items-center">
+            <img src="/yoe.png" alt="YOE Logo" className="h-12 w-auto object-contain" />
           </Link>
           <div className="flex gap-6">
             {modules.map((module) => (

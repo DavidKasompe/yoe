@@ -14,7 +14,9 @@ export default function LandingPage() {
       {/* Navigation */}
       <nav className="border-b border-neutral-200">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="text-2xl font-bold text-black">YOE</div>
+          <div className="flex items-center">
+            <img src="/yoe.png" alt="YOE Logo" className="h-12 w-auto object-contain" />
+          </div>
           <div className="flex gap-3">
             {user ? (
               <Link

@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyRole } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { team_id: string } }
 ) {
   try {
-    // RBAC: Analyst, Admin
-    const auth = await verifyRole(req, ['Analyst', 'Admin']);
+    // RBAC: Coach, Analyst, Admin
+    const auth = await verifyRole(req, ['Coach', 'Analyst', 'Admin']);
     if (!auth.authorized) {
       return NextResponse.json({ error: auth.error }, { status: auth.authenticated ? 403 : 401 });
     }

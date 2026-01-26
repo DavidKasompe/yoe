@@ -6,6 +6,8 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'fallback-secret-for-dev-only'
 );
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const authHeader = req.headers.get('authorization');
@@ -14,7 +16,14 @@ export async function GET(req: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    let payload;
+    try {
+      const verified = await jwtVerify(token, JWT_SECRET);
+      payload = verified.payload;
+    } catch (e) {
+      console.error('JWT verify failed:', e);
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
     const userId = payload.userId as string;
 
     const user = await prisma.user.findUnique({

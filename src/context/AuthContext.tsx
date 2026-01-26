@@ -51,16 +51,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [tokens, setTokens] = useState<AuthTokens | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const storeTokens = (accessToken: string, refreshToken: string, expiresIn: number = 3600) => {
+  const storeTokens = (accessToken: string, refreshToken: string, expiresIn: number = 86400) => {
     const expiresAt = Date.now() + expiresIn * 1000;
     const newTokens: AuthTokens = { accessToken, refreshToken, expiresAt };
     setTokens(newTokens);
     localStorage.setItem("authTokens", JSON.stringify(newTokens));
+    // Also store a simple version for easier access in other components if needed
+    localStorage.setItem("accessToken", accessToken);
   };
 
   const clearTokens = () => {
     setTokens(null);
     localStorage.removeItem("authTokens");
+    localStorage.removeItem("accessToken");
     localStorage.removeItem("user");
   };
 
@@ -92,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const data = await response.json();
-      storeTokens(data.access, data.refresh, 3600);
+      storeTokens(data.access, data.refresh, 86400);
       return true;
     } catch (error) {
       console.error("Token refresh failed:", error);
@@ -124,11 +127,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(storedUser);
 
         if (storedTokens.expiresAt - Date.now() < REFRESH_THRESHOLD) {
-          await refreshSession();
-        } else {
+          const refreshed = await refreshSession();
+          if (!refreshed) {
+            setIsLoading(false);
+            return;
+          }
+        }
+        
+        // Re-get tokens after potential refresh
+        const currentTokens = JSON.parse(localStorage.getItem("authTokens") || "null");
+        if (currentTokens?.accessToken) {
           try {
             const response = await fetch("/api/auth/me", {
-              headers: { Authorization: `Bearer ${storedTokens.accessToken}` },
+              headers: { Authorization: `Bearer ${currentTokens.accessToken}` },
             });
             if (response.ok) {
               const userData = await response.json();
@@ -146,7 +157,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 localStorage.setItem("user", JSON.stringify(userObj));
               }
             } else if (response.status === 401) {
-              await refreshSession();
+              // Only try refreshing once to avoid infinite loops if refresh also returns 401
+              const refreshed = await refreshSession();
+              if (refreshed) {
+                // One more try with new token
+                const newTokens = JSON.parse(localStorage.getItem("authTokens") || "null");
+                if (newTokens?.accessToken) {
+                   const retryResponse = await fetch("/api/auth/me", {
+                     headers: { Authorization: `Bearer ${newTokens.accessToken}` },
+                   });
+                   if (retryResponse.ok) {
+                     const userData = await retryResponse.json();
+                     const userObj = {
+                       id: userData.id,
+                       email: userData.email,
+                       fullName: `${userData.first_name || ''} ${userData.last_name || ''}`.trim(),
+                       displayName: userData.username,
+                       role: userData.role
+                     };
+                     setUser(userObj);
+                     localStorage.setItem("user", JSON.stringify(userObj));
+                   }
+                }
+              }
             }
           } catch (e) {
              // Use cached user if network fails

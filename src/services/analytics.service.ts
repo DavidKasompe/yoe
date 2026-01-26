@@ -59,6 +59,175 @@ export class AnalyticsService {
     return match;
   }
 
+  async getCoachDecisionMetrics(teamId: string) {
+    const latestSnapshot = await prisma.teamFeatureSnapshot.findFirst({
+      where: { teamId },
+      orderBy: { timestamp: 'desc' },
+    });
+
+    const previousSnapshot = await prisma.teamFeatureSnapshot.findFirst({
+      where: { teamId },
+      orderBy: { timestamp: 'desc' },
+      skip: 1,
+    });
+
+    if (!latestSnapshot) return null;
+
+    // Decision Logic: "Are we winning for the right reasons?"
+    // Reason 1: Early Game Dominance
+    const isEarlyDominant = latestSnapshot.goldAdvantage > 1500;
+    const earlyGameStatus = isEarlyDominant ? "Dominant" : "Neutral";
+    
+    // Reason 2: Objective Efficiency
+    const isObjectiveEfficient = latestSnapshot.objectiveControl > 0.65;
+    const objectiveStatus = isObjectiveEfficient ? "High Efficiency" : "Low Pressure";
+
+    // "Where are we exposed?"
+    const exposure = latestSnapshot.avgDeaths > 4.0 ? "High Risk (Deaths)" : "Stable";
+    
+    // "What do we adjust next match?"
+    let adjustment = "Maintain current momentum.";
+    if (latestSnapshot.avgDeaths > 4.0) adjustment = "Prioritize defensive vision and safe rotations.";
+    else if (latestSnapshot.objectiveControl < 0.5) adjustment = "Increase objective priority in mid-game.";
+    else if (latestSnapshot.goldAdvantage < 0) adjustment = "Focus on early-game laning and gold efficiency.";
+
+    return {
+      winRate: (latestSnapshot.winRate * 100).toFixed(1) + "%",
+      earlyGameStatus,
+      objectiveStatus,
+      exposure,
+      adjustment,
+      performanceSignal: this.calculatePerformanceSignal(latestSnapshot),
+      tempoControl: this.calculateTempoControl(latestSnapshot),
+      riskExposure: this.calculateRiskExposure(latestSnapshot),
+      carryPressure: await this.calculateCarryPressure(teamId),
+      raw: {
+        winRate: latestSnapshot.winRate,
+        goldAdvantage: latestSnapshot.goldAdvantage,
+        objectiveControl: latestSnapshot.objectiveControl,
+        avgDeaths: latestSnapshot.avgDeaths
+      },
+      deltas: {
+        winRate: previousSnapshot ? (latestSnapshot.winRate - previousSnapshot.winRate) : 0,
+        goldAdvantage: previousSnapshot ? (latestSnapshot.goldAdvantage - previousSnapshot.goldAdvantage) : 0,
+      }
+    };
+  }
+
+  private async calculateCarryPressure(teamId: string) {
+    const playerStats = await prisma.playerStats.findMany({
+      where: {
+        player: { teamId: teamId },
+        match: { teamStats: { some: { teamId: teamId } } }
+      },
+      include: { player: true, match: { include: { teamStats: true } } },
+      orderBy: { match: { date: 'desc' } },
+      take: 25 // Last 5 games (5 players each)
+    });
+
+    if (playerStats.length === 0) return null;
+
+    const roleData: Record<string, { damage: number, gold: number, clutch: number, count: number }> = {
+      "Top": { damage: 0, gold: 0, clutch: 0, count: 0 },
+      "Jungle": { damage: 0, gold: 0, clutch: 0, count: 0 },
+      "Mid": { damage: 0, gold: 0, clutch: 0, count: 0 },
+      "ADC": { damage: 0, gold: 0, clutch: 0, count: 0 },
+      "Support": { damage: 0, gold: 0, clutch: 0, count: 0 },
+    };
+
+    playerStats.forEach(ps => {
+      const role = ps.player.role || "Unknown";
+      if (roleData[role]) {
+        roleData[role].damage += (ps.kills * 2) + ps.assists; // Proxy for damage share
+        roleData[role].gold += ps.goldEarned;
+        roleData[role].clutch += ps.positioningScore; // Proxy for clutch participation
+        roleData[role].count += 1;
+      }
+    });
+
+    const totalPressure = Object.values(roleData).reduce((acc, r) => acc + (r.count > 0 ? (r.damage + r.gold / 1000 + r.clutch * 10) : 0), 0);
+
+    const distribution = Object.entries(roleData).map(([role, stats]) => {
+      const rolePressure = stats.count > 0 ? (stats.damage + stats.gold / 1000 + stats.clutch * 10) : 0;
+      const share = totalPressure > 0 ? (rolePressure / totalPressure) : 0.2;
+      
+      let status = "Balanced";
+      if (share > 0.25) status = "Overloaded";
+      else if (share < 0.15) status = "Underutilized";
+
+      return {
+        role,
+        value: Math.round(share * 100),
+        status
+      };
+    });
+
+    const topRoles = [...distribution].sort((a, b) => b.value - a.value).slice(0, 2);
+    const insight = `Carry pressure heavily concentrated on ${topRoles[0].role} and ${topRoles[1].role}.`;
+
+    return {
+      distribution,
+      insight
+    };
+  }
+
+  private calculateRiskExposure(snapshot: any) {
+    // Logic: deaths_mid_game / total_deaths (Simulated with avgDeaths for now)
+    // pattern: death clustering during mid-game rotations
+    const riskLevel = snapshot.avgDeaths > 4.5 ? "High" : snapshot.avgDeaths > 3.0 ? "Medium" : "Low";
+    
+    let pattern = "Isolated pick-offs";
+    if (snapshot.avgDeaths > 4.5) pattern = "Mid-game teamfight collapses";
+    else if (snapshot.avgDeaths > 3.0) pattern = "Mid-game rotations without vision";
+
+    let recommendation = "Maintain current vision standards.";
+    if (riskLevel === "High") recommendation = "Avoid non-essential skirmishes mid-game.";
+    else if (riskLevel === "Medium") recommendation = "Improve vision before objectives.";
+
+    return {
+      risk_level: riskLevel,
+      pattern: pattern,
+      recommendation: recommendation
+    };
+  }
+
+  private calculatePerformanceSignal(snapshot: any) {
+    // Formula: win_rate_weighted_by_opponent_strength + early_game_objective_score * 0.4 + mid_game_stability_score * 0.3 + late_game_conversion_score * 0.3
+    // Simplified weighting for now as "opponent strength" is not explicitly modeled
+    const winRateWeight = snapshot.winRate; // Base win rate
+    const earlyObjScore = snapshot.objectiveControl; // Proxy for early objective score
+    const midStability = snapshot.goldAdvantage > 0 ? 0.8 : 0.4; // Proxy for mid game stability
+    const lateConversion = snapshot.winRate > 0.6 ? 0.9 : 0.5; // Proxy for late game conversion
+
+    const score = (winRateWeight * 1.0) + (earlyObjScore * 0.4) + (midStability * 0.3) + (lateConversion * 0.3);
+    const normalizedScore = Math.min(score / 2.0, 1.0); // Simple normalization to 0-1 range
+
+    let status = "Stable";
+    if (normalizedScore > 0.8) status = "Overperforming";
+    else if (normalizedScore < 0.4) status = "At Risk";
+
+    return {
+      status,
+      confidence: normalizedScore,
+      summary: status === "Overperforming" ? "Driven by early objective control; late-game untested" : "Performance aligned with expectations",
+      drivers: ["early_game", "objective_control"]
+    };
+  }
+
+  private calculateTempoControl(snapshot: any) {
+    // Segmentation: Early Strong (goldAdvantage > 1000), Mid Volatile (deaths/match > 3), Late Neutral
+    const early = snapshot.goldAdvantage > 1000 ? "Strong" : "Weak";
+    const mid = snapshot.avgDeaths > 3.5 ? "Volatile" : "Stable";
+    const late = snapshot.objectiveControl > 0.6 ? "Strong" : "Neutral";
+
+    return {
+      early,
+      mid,
+      late,
+      note: early === "Strong" && mid === "Volatile" ? "Tempo loss after first objective rotation" : "Maintaining consistent map pressure"
+    };
+  }
+
   async createTeamFeatureSnapshot(teamId: string) {
     const matches = await prisma.match.findMany({
       where: { teamStats: { some: { teamId } } },
@@ -147,7 +316,7 @@ export class AnalyticsService {
     });
 
     playerStats.forEach(ps => {
-      const role = ps.player.role;
+      const role = ps.player.role || "Unknown";
       if (!roleDeaths[role]) roleDeaths[role] = { total: 0, count: 0 };
       roleDeaths[role].total += ps.deaths;
       roleDeaths[role].count += 1;
@@ -212,6 +381,14 @@ export class AnalyticsService {
     const { blue_picks, red_picks, bans } = currentState;
     const allProfiles = await prisma.championProfile.findMany();
     
+    if (allProfiles.length === 0) {
+      return { 
+        status: "insufficient_data",
+        recommendations: [],
+        message: "Champion pool models not initialized. Please run ingest/modeling first."
+      };
+    }
+    
     // Simple evaluation logic based on prompt weights
     const recommendations = allProfiles
       .filter(p => !blue_picks.includes(p.champion) && !red_picks.includes(p.champion) && !bans.includes(p.champion))
@@ -260,7 +437,11 @@ export class AnalyticsService {
   }
 
   private async generateScoutingExplanation(profile: any) {
-    const systemPrompt = "You are a professional esports analyst. Your task is to explain tendencies, weaknesses, and counter-strategies based on structured scouting features. Be concise and tactical.";
+    const systemPrompt = `You are a professional esports analyst. 
+You are given structured analytics JSON. 
+Explain ONLY what is supported by the data. 
+Do not invent statistics. 
+Your task is to explain tendencies, weaknesses, and counter-strategies based on these structured scouting features. Be concise and tactical.`;
     const userPrompt = `Structured Scouting Features (JSON): ${JSON.stringify(profile)}`;
     
     return this.groq.generateChatCompletion(systemPrompt, userPrompt);
@@ -465,6 +646,8 @@ export class AnalyticsService {
       include: { player: true },
     });
 
+    if (!playerStats) return;
+
     for (const ps of playerStats) {
       const kda = (ps.kills + ps.assists) / Math.max(1, ps.deaths);
       await prisma.extractedFeature.create({
@@ -480,6 +663,7 @@ export class AnalyticsService {
 
   private async predictWinProbability(matchId: string) {
     const drafts = await prisma.draft.findMany({ where: { matchId } });
+    if (!drafts) return;
     for (const draft of drafts) {
       // Mock ML logic
       const winProb = 0.5 + (Math.random() * 0.2 - 0.1);

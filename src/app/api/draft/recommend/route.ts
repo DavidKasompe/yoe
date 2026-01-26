@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { AnalyticsService } from '@/services/analytics.service';
 import { verifyRole } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
     // RBAC: @require_role(["COACH", "ADMIN"])
