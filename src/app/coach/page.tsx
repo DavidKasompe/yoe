@@ -304,7 +304,7 @@ export default function CoachDashboard() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0f] via-[#0f0f18] to-[#0a0a0f] -m-10 p-8">
+      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0f] via-[#0f0f18] to-[#0a0a0f] -m-10 p-10 pt-16">
         <div className="max-w-[1400px] mx-auto">
           
           {/* Header */}

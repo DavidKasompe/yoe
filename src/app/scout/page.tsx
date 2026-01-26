@@ -63,7 +63,7 @@ export default function ScoutingPage() {
 
   return (
     <MainLayout>
-      <div className="bg-gradient-to-br from-[#0a0a0a] via-[#121212] to-[#0d0d0d] min-h-screen -m-10 p-8 text-white font-sans">
+      <div className="bg-gradient-to-br from-[#0a0a0a] via-[#121212] to-[#0d0d0d] min-h-screen -m-10 p-10 pt-16 text-white font-sans">
         {/* Header */}
         <div className="max-w-[1600px] mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
