@@ -1,0 +1,82 @@
+export default function ScoutingPage() {
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const [selectedTeamPlayers, setSelectedTeamPlayers] = useState<Player[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [scoutingReport, setScoutingReport] = useState("");
+
+  // Generate AI-powered scouting report
+  const generateReport = async () => {
+    if (!selectedTeam) {
+      alert("Please select a team first");
+      return;
+    }
+
+    setIsGeneratingReport(true);
+
+    try {
+      const teamData = teams.find(t => t.id === selectedTeam);
+      if (!teamData) {
+        alert("Team not found");
+        setIsGeneratingReport(false);
+        return;
+      }
+
+      const response = await fetch('/api/scout/generate-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teamName: teamData.name }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate report');
+      }
+
+      const { report } = await response.json();
+      
+      const formattedReport = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    SCOUTING REPORT: ${report.teamName}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Generated: ${report.generatedAt}
+Threat Level: ${report.threatLevel}
+
+═══ STATISTICS ═══
+Record: ${report.statistics.record} (${report.statistics.winRate})
+Form: ${report.statistics.trend.toUpperCase()}
+League: ${report.statistics.league}
+Avg Game Time: ${report.statistics.avgGameTime}
+
+═══ OVERVIEW ═══
+${report.overview}
+
+═══ STRATEGIC PROFILE ═══
+${report.strategicProfile}
+
+═══ CHAMPION ANALYSIS ═══
+${report.championAnalysis}
+
+Top Picks: ${report.championPool.topPicks.map((c, i) => `${c.name} (${c.count})`).join(', ')}
+Most Banned: ${report.championPool.topBans.map((c, i) => `${c.name} (${c.count})`).join(', ')}
+
+═══ COUNTERPLAY RECOMMENDATIONS ═══
+${report.counterplay}
+
+═══ RECENT MATCHES ═══
+${report.recentMatches.map(m => `${m.result} vs ${m.opponent}`).join(' | ')}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+      
+      alert(formattedReport);
+      setScoutingReport(formattedReport);
+      console.log("Full Report:", formattedReport);
+    } catch (error) {
+      console.error("Report generation failed:", error);
+      alert(`Failed to generate report: ${error.message}`);
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };

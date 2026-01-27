@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Zap, TrendingUp, ArrowUpRight, ArrowDownRight, Shield, Sword, Users, Eye, Crown, RefreshCw } from "lucide-react";
+import { Zap, TrendingUp, ArrowUpRight, ArrowDownRight, Shield, Sword, Users, Eye, Crown, RefreshCw, Trophy } from "lucide-react";
 
 // SVG Lane Icons
 const LaneIcons = {
@@ -115,10 +115,26 @@ const ProgressRing = ({ value, size = 120, strokeWidth = 8, color = "#c9a66b" }:
   );
 };
 
-// Glassmorphism card wrapper
-const GlassCard = ({ children, className = "", glow = false }: { children: React.ReactNode, className?: string, glow?: boolean }) => (
-  <div className={`relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/10 overflow-hidden ${glow ? 'shadow-lg shadow-brown/20' : ''} ${className}`}>
-    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+// Enhanced card wrapper with improved styling
+const GlassCard = ({ children, className = "", glow = false, hover = true }: { children: React.ReactNode, className?: string, glow?: boolean, hover?: boolean }) => (
+  <div className={`
+    relative rounded-2xl overflow-hidden
+    bg-gradient-to-br from-neutral-900/90 via-black to-neutral-950
+    border border-white/[0.08]
+    ${glow ? 'shadow-2xl shadow-brown/20 border-brown/20' : 'shadow-lg shadow-black/50'}
+    ${hover ? 'hover:scale-[1.01] hover:shadow-2xl hover:shadow-brown/10 hover:border-white/[0.12]' : ''}
+    transition-all duration-300 ease-out
+    ${className}
+  `}>
+    {/* Subtle inner glow */}
+    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+    
+    {/* Glow effect for important cards */}
+    {glow && (
+      <div className="absolute -inset-[1px] bg-gradient-to-br from-brown/10 via-brown-light/5 to-transparent rounded-2xl blur-md -z-10" />
+    )}
+    
+    {/* Content */}
     <div className="relative z-10 h-full">{children}</div>
   </div>
 );
@@ -151,11 +167,15 @@ interface LiveData {
   }>;
 }
 
+import { MatchAnalysisModal } from "@/components/coach/MatchAnalysisModal";
+
+// ... [Keep existing component definitions up to CoachDashboard export] ...
+
 export default function CoachDashboard() {
   const [liveData, setLiveData] = useState<LiveData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isExplaining, setIsExplaining] = useState(false);
-  const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [analysisData, setAnalysisData] = useState<any>(null); // New state for structured analysis
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
   // Historical data for sparklines
@@ -195,49 +215,57 @@ export default function CoachDashboard() {
   }, [fetchLiveGame]);
 
   const handleExplainMatch = async () => {
+    if (!liveData?.teams?.[0]) return;
+    
     setIsExplaining(true);
-    setTimeout(() => {
-      if (!liveData?.teams?.[0]) {
-        setAiInsight("Unable to analyze - no live data available.");
-        setIsExplaining(false);
-        return;
-      }
-      
+    try {
       const team = liveData.teams[0];
       const enemy = liveData.teams[1];
-      const goldDiff = (team.gold - enemy.gold) / 1000;
-      const killDiff = team.kills - enemy.kills;
-      const objDiff = (team.dragons + team.towers + (team.barons || 0)) - (enemy.dragons + enemy.towers + (enemy.barons || 0));
       
-      let insight = `${team.name} `;
-      if (goldDiff > 0) {
-        insight += `holds a ${goldDiff.toFixed(1)}k gold lead. `;
-      } else {
-        insight += `trails by ${Math.abs(goldDiff).toFixed(1)}k gold. `;
-      }
+      // Prepare rich context for the AI
+      const analysisPayload = {
+        gameState: {
+          gameTime: liveData.gameTime || "Unknown",
+          goldDiff: ((team.gold - enemy.gold) / 1000).toFixed(1) + "k",
+          kills: { us: team.kills, them: enemy.kills },
+          objectives: {
+            us: { towers: team.towers, dragons: team.dragons, barons: team.barons },
+            them: { towers: enemy.towers, dragons: enemy.dragons, barons: enemy.barons }
+          }
+        },
+        // Send full roster for deep analysis
+        roster: team.players.map(p => ({
+          name: p.name,
+          role: p.stats.role || "Unknown",
+          kda: `${p.stats.kills || 0}/${p.stats.deaths || 0}/${p.stats.assists || 0}`,
+          cs: p.stats.cs || 0,
+          gold: p.stats.gold || 0,
+        })),
+        // Send enemy key stats for matchup context
+        enemyRoster: enemy.players.map(p => ({
+          name: p.name,
+          role: p.stats.role || "Unknown",
+          kda: `${p.stats.kills || 0}/${p.stats.deaths || 0}/${p.stats.assists || 0}`,
+          gold: p.stats.gold || 0,
+        }))
+      };
+
+      const response = await fetch('/api/llm/explain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ analysis_payload: analysisPayload })
+      });
+
+      if (!response.ok) throw new Error("Analysis failed");
+
+      const { analysis } = await response.json();
+      setAnalysisData(analysis);
       
-      if (killDiff > 3) {
-        insight += `Strong kill advantage (+${killDiff}). `;
-      }
-      
-      if (objDiff > 0) {
-        insight += `Objective control is favorable. `;
-      }
-      
-      // Find the carry
-      const carry = team.players.reduce((best, p) => 
-        (p.stats.kills || 0) > (best?.stats.kills || 0) ? p : best
-      , team.players[0]);
-      
-      if (carry) {
-        insight += `${carry.name} is carrying (${carry.stats.kills}/${carry.stats.deaths}/${carry.stats.assists}). `;
-      }
-      
-      insight += `Recommend ${goldDiff > 3 ? 'forcing Baron at next spawn' : 'playing for objectives to extend the lead'}.`;
-      
-      setAiInsight(insight);
+    } catch (error) {
+      console.error("Failed to explain match:", error);
+    } finally {
       setIsExplaining(false);
-    }, 1500);
+    }
   };
 
   const teams = liveData?.teams || [];
@@ -304,78 +332,118 @@ export default function CoachDashboard() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0f] via-[#0f0f18] to-[#0a0a0f] -m-10 p-10 pt-16">
+      <div className="min-h-screen bg-black -m-10 p-10 pt-16">
         <div className="max-w-[1400px] mx-auto">
           
           {/* Header */}
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-start mb-8">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-white">ASSISTANT COACH DASHBOARD</h1>
-              <div className="flex items-center gap-3 mt-1">
-                <div className="flex items-center gap-1.5">
+              <h1 className="text-3xl font-black tracking-tight text-white mb-2">ASSISTANT COACH</h1>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/30">
                   <div className="relative">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-ping absolute" />
-                    <div className="w-2 h-2 rounded-full bg-green-500" />
+                    <div className="w-2 h-2 rounded-full bg-green-400 animate-ping absolute" />
+                    <div className="w-2 h-2 rounded-full bg-green-400" />
                   </div>
-                  <span className="text-xs text-green-400 font-semibold">LIVE</span>
+                  <span className="text-xs text-green-400 font-bold uppercase tracking-wider">LIVE</span>
                 </div>
-                <span className="text-xs text-neutral-500">
-                  {ourTeam.name || 'T1'} vs {enemyTeam.name || 'Gen.G'} • Game {liveData?.gameNumber || 1}
-                </span>
-                {lastUpdated && (
-                  <span className="text-[10px] text-neutral-600">
-                    Updated {lastUpdated.toLocaleTimeString()}
+                <div className="flex items-center gap-3">
+                  {/* Our Team Logo */}
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-brown/40 bg-gradient-to-br from-brown/20 to-brown-light/20">
+                      <img 
+                        src={`https://am-a.akamaihd.net/image?resize=75:&f=http://static.lolesports.com/teams/${(ourTeam.name || 'T1').toLowerCase().replace(/\s+/g, '-').replace(/\./g, '')}.png`}
+                        alt={ourTeam.name || 'T1'}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          target.style.display = 'none';
+                          const fallback = document.createElement('div');
+                          fallback.className = 'w-full h-full flex items-center justify-center bg-gradient-to-br from-brown/30 to-brown-light/30 text-brown-light font-black text-xs';
+                          fallback.textContent = (ourTeam.name || 'T1').substring(0, 2).toUpperCase();
+                          target.parentElement?.appendChild(fallback);
+                        }}
+                      />
+                    </div>
+                    <span className="text-sm text-white font-semibold">
+                      {ourTeam.name || 'T1'} 
+                    </span>
+                  </div>
+                  <span className="text-neutral-600">vs</span>
+                  {/* Enemy Team Logo */}
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white/20 bg-white/5">
+                      <img 
+                        src={`https://am-a.akamaihd.net/image?resize=75:&f=http://static.lolesports.com/teams/${(enemyTeam.name || 'Gen.G').toLowerCase().replace(/\s+/g, '-').replace(/\./g, '')}.png`}
+                        alt={enemyTeam.name || 'Gen.G'}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          target.style.display = 'none';
+                          const fallback = document.createElement('div');
+                          fallback.className = 'w-full h-full flex items-center justify-center bg-white/10 text-white font-black text-xs';
+                          fallback.textContent = (enemyTeam.name || 'Gen.G').substring(0, 2).toUpperCase();
+                          target.parentElement?.appendChild(fallback);
+                        }}
+                      />
+                    </div>
+                    <span className="text-sm text-neutral-300 font-semibold">
+                      {enemyTeam.name || 'Gen.G'}
+                    </span>
+                  </div>
+                  <span className="text-neutral-600">•</span>
+                  <span className="text-sm text-neutral-500">
+                    Game {liveData?.gameNumber || 1}
                   </span>
-                )}
+                </div>
               </div>
+              {lastUpdated && (
+                <div className="text-[10px] text-neutral-600 mt-1">
+                  Last updated {lastUpdated.toLocaleTimeString()}
+                </div>
+              )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <button
                 onClick={fetchLiveGame}
-                className="p-2.5 rounded-xl border border-white/10 hover:bg-white/5 transition-all"
+                className="p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all group"
                 title="Refresh"
               >
-                <RefreshCw size={16} className="text-neutral-400" />
+                <RefreshCw size={18} className="text-neutral-400 group-hover:text-white transition-colors" />
               </button>
               <button
                 onClick={handleExplainMatch}
                 disabled={isExplaining}
-                className="px-5 py-2.5 bg-gradient-to-r from-brown to-brown-light hover:from-brown-light hover:to-brown text-white text-sm font-semibold rounded-xl transition-all disabled:opacity-50 flex items-center gap-2"
+                className="px-6 py-3 bg-gradient-to-r from-brown to-brown-light hover:from-brown-light hover:to-brown text-white text-sm font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-brown/20"
               >
-                <Zap size={16} className={isExplaining ? 'animate-pulse' : ''} />
+                <Zap size={18} className={isExplaining ? 'animate-pulse' : ''} />
                 {isExplaining ? 'ANALYZING...' : 'EXPLAIN MATCH'}
               </button>
             </div>
           </div>
 
-          {/* AI Insight */}
-          {aiInsight && (
-            <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-brown/20 to-brown-light/10 border border-brown/30">
-              <div className="flex items-center gap-2 mb-2">
-                <Zap size={14} className="text-brown-light" />
-                <span className="text-xs font-semibold text-brown-light uppercase tracking-wider">AI Strategic Insight</span>
-              </div>
-              <p className="text-neutral-200 text-sm">{aiInsight}</p>
-            </div>
-          )}
-
-          {/* Bento Grid Layout */}
+          {/* Bento Grid Layout - SAME AS BEFORE, JUST REMOVED THE OLD AI INSIGHT CARD */}
           <div className="grid grid-cols-12 gap-4">
             
             {/* Win Probability - Large Square */}
             <GlassCard className="col-span-12 md:col-span-4 lg:col-span-3 p-6" glow>
-              <div className="flex justify-between items-start mb-4">
-                <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Win Probability</span>
-                <div className={`flex items-center gap-1 ${winProbability > 50 ? 'text-brown-light' : 'text-red-400'} text-xs font-semibold`}>
-                  {winProbability > 50 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                  {winProbability > 50 ? '+' : ''}{(winProbability - 50).toFixed(0)}%
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brown/30 to-brown-light/30 flex items-center justify-center">
+                  <Trophy size={18} className="text-brown-light" />
+                </div>
+                <div className="flex-1">
+                  <span className="text-xs font-black text-neutral-400 uppercase tracking-wider block">Win Probability</span>
+                  <div className={`flex items-center gap-1 ${winProbability > 50 ? 'text-green-400' : 'text-red-400'} text-xs font-bold mt-0.5`}>
+                    {winProbability > 50 ? <TrendingUp size={12} /> : <ArrowDownRight size={12} />}
+                    {winProbability > 50 ? 'Favored' : 'Behind'}
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center justify-center py-4">
+              <div className="flex items-center justify-center py-2">
                 <div className="relative">
-                  <ProgressRing value={winProbability} size={140} strokeWidth={10} color={winProbability > 50 ? "#c9a66b" : "#ef4444"} />
+                  <ProgressRing value={winProbability} size={140} strokeWidth={10} color={winProbability > 50 ? "#22c55e" : "#ef4444"} />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-3xl font-bold text-white">{winProbability.toFixed(0)}%</span>
+                    <span className="text-4xl font-black text-white">{winProbability.toFixed(0)}%</span>
                   </div>
                 </div>
               </div>
@@ -383,35 +451,51 @@ export default function CoachDashboard() {
 
             {/* Objective Control */}
             <GlassCard className="col-span-6 md:col-span-4 lg:col-span-3 p-6">
-              <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Objective Control</span>
-              <div className="flex items-center justify-center py-6">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/20 to-purple-600/20 flex items-center justify-center">
+                  <Crown size={16} className="text-purple-400" />
+                </div>
+                <span className="text-xs font-black text-neutral-400 uppercase tracking-wider">Objectives</span>
+              </div>
+              <div className="flex items-center justify-center py-4">
                 <div className="relative">
                   <ProgressRing value={objControl} size={100} strokeWidth={8} color="#d4af71" />
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-2xl font-bold text-white">{objControl}%</span>
+                    <span className="text-2xl font-black text-white">{objControl}%</span>
                   </div>
                 </div>
               </div>
-              <div className="flex justify-center gap-4 text-xs text-neutral-500 mt-2">
-                <span>🗼 {ourTeam.towers}</span>
-                <span>🐉 {ourTeam.dragons}</span>
-                <span>👑 {ourTeam.barons || 0}</span>
+              <div className="flex justify-center gap-4 text-xs font-semibold mt-3">
+                <div className="flex items-center gap-1">
+                  <span className="text-neutral-600">🗼</span>
+                  <span className="text-white">{ourTeam.towers}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-neutral-600">🐉</span>
+                  <span className="text-purple-400">{ourTeam.dragons}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-neutral-600">👑</span>
+                  <span className="text-brown-light">{ourTeam.barons || 0}</span>
+                </div>
               </div>
             </GlassCard>
 
             {/* Gold Diff with Sparkline */}
             <GlassCard className="col-span-6 md:col-span-4 lg:col-span-6 p-6">
-              <div className="flex justify-between items-start mb-2">
-                <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Gold Difference</span>
-                <div className="flex items-center gap-2 text-xs text-neutral-500">
-                  <div className="w-2 h-0.5 bg-yellow-500"></div>
-                  vs {enemyTeam.name || 'Enemy'}
+              <div className="flex items-center gap-2 mb-3">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isGoldPositive ? 'bg-gradient-to-br from-yellow-500/20 to-amber-600/20' : 'bg-gradient-to-br from-red-500/20 to-red-600/20'}`}>
+                  <TrendingUp size={16} className={isGoldPositive ? 'text-yellow-400' : 'text-red-400'} />
+                </div>
+                <div className="flex-1">
+                  <span className="text-xs font-black text-neutral-400 uppercase tracking-wider block">Gold Advantage</span>
+                  <span className="text-[10px] text-neutral-600">vs {enemyTeam.name || 'Enemy'}</span>
                 </div>
               </div>
               <div className="relative h-20">
-                <Sparkline data={goldHistory} color="#eab308" height={80} />
+                <Sparkline data={goldHistory} color={isGoldPositive ? "#eab308" : "#ef4444"} height={80} />
                 <div className="absolute bottom-0 left-0">
-                  <span className={`text-3xl font-bold ${isGoldPositive ? 'text-brown-light' : 'text-red-400'}`}>
+                  <span className={`text-4xl font-black ${isGoldPositive ? 'text-yellow-400' : 'text-red-400'}`}>
                     {isGoldPositive ? '+' : ''}{goldDiff}k
                   </span>
                 </div>
@@ -420,23 +504,54 @@ export default function CoachDashboard() {
 
             {/* Team Roster */}
             <GlassCard className="col-span-12 md:col-span-6 lg:col-span-3 p-5">
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Team Roster</span>
-                <span className="text-[10px] text-neutral-600">KDA</span>
+              <div className="flex items-center gap-2 mb-5">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500/20 to-cyan-600/20 flex items-center justify-center">
+                  <Users size={16} className="text-blue-400" />
+                </div>
+                <span className="text-xs font-black text-neutral-400 uppercase tracking-wider">Team Roster</span>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {roster.map((player, i) => {
                   const RoleIcon = getRoleIcon(player.role);
+                  const kda = player.kda.split('/');
+                  const kills = parseInt(kda[0]);
+                  const deaths = parseInt(kda[1]);
+                  const kdaRatio = deaths > 0 ? (kills / deaths) : kills;
+                  const kdaColor = kdaRatio >= 3 ? 'text-green-400' : kdaRatio >= 1.5 ? 'text-yellow-400' : 'text-red-400';
+                  const playerName = player.name.split(' ').pop() || player.name;
+                  
                   return (
-                    <div key={i} className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-neutral-400">
-                        <RoleIcon />
+                    <div key={i} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-all group">
+                      {/* Player Avatar with Role Icon Overlay */}
+                      <div className="relative">
+                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/10 bg-gradient-to-br from-white/10 to-white/5 group-hover:border-brown/40 transition-all">
+                          <img 
+                            src={`https://am-a.akamaihd.net/image?resize=75:&f=http://static.lolesports.com/players/${playerName.toLowerCase()}.png`}
+                            alt={playerName}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.currentTarget;
+                              target.style.display = 'none';
+                              const fallback = document.createElement('div');
+                              fallback.className = 'w-full h-full flex items-center justify-center bg-gradient-to-br from-brown/20 to-brown-light/20 text-brown-light font-black text-xs';
+                              fallback.textContent = playerName.substring(0, 2).toUpperCase();
+                              target.parentElement?.appendChild(fallback);
+                            }}
+                          />
+                        </div>
+                        {/* Role Icon Badge */}
+                        <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-black border border-white/20 flex items-center justify-center text-neutral-400">
+                          <RoleIcon />
+                        </div>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <span className="text-white text-sm font-medium truncate block">{player.name.split(' ').pop()}</span>
+                        <span className="text-white text-sm font-bold truncate block">{playerName}</span>
+                        <span className="text-[10px] text-neutral-600">{player.role}</span>
                       </div>
-                      <span className="text-xs text-neutral-400 font-mono">{player.kda}</span>
-                      <span className="text-[10px] text-neutral-600">{player.cs} CS</span>
+                      <div className="text-right">
+                        <span className={`text-xs font-bold font-mono ${kdaColor}`}>{player.kda}</span>
+                        <div className="text-[10px] text-neutral-600">{player.cs} CS</div>
+                      </div>
                     </div>
                   );
                 })}
@@ -475,12 +590,17 @@ export default function CoachDashboard() {
 
             {/* Live Kills with Sparkline */}
             <GlassCard className="col-span-6 md:col-span-4 lg:col-span-3 p-6">
-              <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Live Kills</span>
-              <div className="relative h-24 mt-2">
-                <Sparkline data={killsHistory} color="#c9a66b" height={60} />
-                <div className="absolute bottom-0 left-0">
-                  <span className="text-4xl font-bold text-white">{ourTeam.kills}</span>
-                  <span className="text-lg text-neutral-500 ml-1">/ {enemyTeam.kills}</span>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500/20 to-orange-600/20 flex items-center justify-center">
+                  <Sword size={16} className="text-red-400" />
+                </div>
+                <span className="text-xs font-black text-neutral-400 uppercase tracking-wider">Team Kills</span>
+              </div>
+              <div className="relative h-20 mt-2">
+                <Sparkline data={killsHistory} color="#ef4444" height={60} />
+                <div className="absolute bottom-0 left-0 flex items-baseline gap-2">
+                  <span className="text-4xl font-black text-white">{ourTeam.kills}</span>
+                  <span className="text-xl text-neutral-500 font-bold">/{enemyTeam.kills}</span>
                 </div>
               </div>
             </GlassCard>
@@ -506,11 +626,20 @@ export default function CoachDashboard() {
 
             {/* Team KDA */}
             <GlassCard className="col-span-6 md:col-span-4 lg:col-span-3 p-6">
-              <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Team KDA</span>
-              <div className="flex items-center justify-center py-6">
-                <span className="text-4xl font-bold text-white">{teamKDA}</span>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500/20 to-emerald-600/20 flex items-center justify-center">
+                  <TrendingUp size={16} className="text-green-400" />
+                </div>
+                <span className="text-xs font-black text-neutral-400 uppercase tracking-wider">Team KDA</span>
               </div>
-              <div className="text-center text-xs text-neutral-500">
+              <div className="flex items-center justify-center py-4">
+                <span className={`text-5xl font-black ${
+                  typeof teamKDA === 'string' ? 'text-brown-light' : 
+                  parseFloat(teamKDA) >= 3 ? 'text-green-400' : 
+                  parseFloat(teamKDA) >= 2 ? 'text-yellow-400' : 'text-red-400'
+                }`}>{teamKDA}</span>
+              </div>
+              <div className="text-center text-xs text-neutral-500 font-semibold">
                 {teamKills}K / {teamDeaths}D / {teamAssists}A
               </div>
             </GlassCard>
@@ -518,6 +647,14 @@ export default function CoachDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Match Analysis Modal */}
+      {analysisData && (
+        <MatchAnalysisModal
+          analysis={analysisData}
+          onClose={() => setAnalysisData(null)}
+        />
+      )}
     </MainLayout>
   );
 }

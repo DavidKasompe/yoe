@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Search, Target, Users, ChevronRight, Zap, Shield, Sword, Crown, TrendingUp, BarChart3, Trophy, Clock, Eye, Brain, Star, Activity } from "lucide-react";
-import { ScoutingReportModal } from "@/components/scout/ScoutingReportModal";
 
 // Types
 interface Team {
@@ -26,9 +25,9 @@ interface ChampionStat {
 }
 
 // Glassmorphism card
-// Plain black card (Renamed to ScoutCard to force update)
-const ScoutCard = ({ children, className = "", glow = false }: { children: React.ReactNode, className?: string, glow?: boolean }) => (
-  <div className={`relative rounded-2xl bg-black border border-white/20 overflow-hidden ${glow ? 'shadow-lg shadow-brown/10' : ''} ${className}`}>
+const GlassCard = ({ children, className = "", glow = false }: { children: React.ReactNode, className?: string, glow?: boolean }) => (
+  <div className={`relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/10 overflow-hidden ${glow ? 'shadow-lg shadow-brown/20' : ''} ${className}`}>
+    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
     <div className="relative z-10 h-full">{children}</div>
   </div>
 );
@@ -140,7 +139,7 @@ export default function ScoutingPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
-  const [reportData, setReportData] = useState<any>(null);
+  const [scoutingReport, setScoutingReport] = useState("");
 
   // Generate AI-powered scouting report
   const generateReport = async () => {
@@ -152,34 +151,14 @@ export default function ScoutingPage() {
     setIsGeneratingReport(true);
 
     try {
+      const teamData = teams.find(t => t.id === selectedTeam);
 
       const teamData = teams.find(t => t.id === selectedTeam);
-      if (!teamData) {
-        alert("Team not found");
-        setIsGeneratingReport(false);
-        return;
-      }
-
-      // Use originalName for local teams, otherwise use name
-      const teamName = (teamData as any).originalName || teamData.name;
-
-      const response = await fetch('/api/scout/generate-report', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ teamName }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to generate report');
-      }
-
-      const { report } = await response.json();
+      const report = `Scouting Report: ${teamData?.name}\n\nGenerated: ${new Date().toLocaleString()}\n\nKey Insights:\n- Champion pool analysis\n- Strategic patterns\n- Counter-play recommendations\n\nThreat Level: HIGH`;
       
-      // Store report data to display in modal
-      setReportData(report);
-      console.log("Generated Report:", report);
-      
+      alert(report);
+      setScoutingReport(report);
+      console.log("Full Report:", report);
     } catch (error) {
       console.error("Report generation failed:", error);
     } finally {
@@ -191,30 +170,15 @@ export default function ScoutingPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [teamsRes, playersRes, localTeamsRes] = await Promise.all([
+        const [teamsRes, playersRes] = await Promise.all([
           fetch('/api/history?type=lol-teams&first=30'),
           fetch('/api/history?type=lol-players&first=100'),
-          fetch('/api/teams/local'),
         ]);
         
         const teamsData = await teamsRes.json();
         const playersData = await playersRes.json();
-        const localTeamsData = await localTeamsRes.json();
         
-        // Merge GRID teams and local teams, removing duplicates
-        const gridTeams = teamsData.data || [];
-        const localTeams = localTeamsData.data || [];
-        
-        // Add local teams with a marker
-        const localTeamsWithMarker = localTeams.map((team: any) => ({
-          ...team,
-          name: `${team.name} (Local DB)`,
-          originalName: team.name, // Keep original for API calls
-        }));
-        
-        const allTeams = [...gridTeams, ...localTeamsWithMarker];
-        
-        setTeams(allTeams);
+        setTeams(teamsData.data || []);
         setPlayers(playersData.data || []);
       } catch (e) {
         console.error("Failed to fetch scouting data:", e);
@@ -269,8 +233,8 @@ export default function ScoutingPage() {
   const visionTrend = [48, 52, 45, 58, 51, 62, 55];
 
   return (
-    <MainLayout className="bg-black">
-      <div className="min-h-screen bg-black -m-10 p-10 pt-16">
+    <MainLayout>
+      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0f] via-[#0f0f18] to-[#0a0a0f] -m-10 p-10 pt-16">
         <div className="max-w-[1600px] mx-auto">
           
           {/* Header */}
@@ -278,15 +242,6 @@ export default function ScoutingPage() {
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-white">SCOUTING INTELLIGENCE</h1>
               <div className="flex items-center gap-3 mt-1">
-                {selectedTeam && (
-                  <button
-                    onClick={() => setSelectedTeam(null)}
-                    className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
-                  >
-                    <ChevronRight size={14} className="text-brown-light rotate-180" />
-                    <span className="text-xs text-brown-light font-semibold">Back to Teams</span>
-                  </button>
-                )}
                 <div className="flex items-center gap-1.5">
                   <Target size={12} className="text-brown-light" />
                   <span className="text-xs text-brown-light font-semibold">OPPONENT ANALYSIS</span>
@@ -308,59 +263,63 @@ export default function ScoutingPage() {
 
           {/* Main Grid - Bento Layout */}
           <div className="grid grid-cols-12 gap-4">
+            
+            {/* Team Selection - Left Column - Dynamic sizing */}
+            <div className={`col-span-12 space-y-4 transition-all duration-300 ${selectedTeam ? 'lg:col-span-3' : 'lg:col-span-4'}`}>
+              <GlassCard className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Users size={14} className="text-brown-light" />
+                  <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Team Selection</span>
+                </div>
+                <div className="relative mb-3">
+                  <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search teams..."
+                    className="w-full bg-white/5 pl-8 pr-3 py-2 rounded-lg text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:ring-1 focus:ring-brown/50"
+                  />
+                </div>
+                <div className={`space-y-1 overflow-y-auto transition-all duration-300 ${selectedTeam ? 'max-h-[calc(100vh-220px)]' : 'max-h-[400px]'}`}>
+                  {isLoading ? (
+                    <div className="text-center py-6 text-neutral-500 text-sm">Loading...</div>
+                  ) : (
+                    filteredTeams.map((team) => (
+                      <button
+                        key={team.id}
+                        onClick={() => setSelectedTeam(team.id)}
+                        className={`w-full flex items-center gap-2 p-2 rounded-lg transition-all ${
+                          selectedTeam === team.id
+                            ? 'bg-brown/20 border border-brown/40'
+                            : 'hover:bg-white/5 border border-transparent'
+                        }`}
+                      >
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
+                          selectedTeam === team.id ? 'bg-brown text-white' : 'bg-white/10 text-brown-light'
+                        }`}>
+                          {team.name.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div className="text-left flex-1 min-w-0">
+                          <div className="text-xs font-semibold text-white truncate">{team.name}</div>
+                          <div className="text-[10px] text-neutral-500">LoL Esports</div>
+                        </div>
+                        {selectedTeam === team.id && <ChevronRight size={14} className="text-brown-light" />}
+                      </button>
+                    ))
+                  )}
+                </div>
+              </GlassCard>
+            </div>
 
-            {/* Team Selection - Left Column - Hide when team selected */}
-            {!selectedTeam && (
-              <div className="col-span-12 lg:col-span-4 space-y-4">
-                <ScoutCard className="p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Users size={14} className="text-brown-light" />
-                    <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Team Selection</span>
-                  </div>
-                  <div className="relative mb-3">
-                    <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search teams..."
-                      className="w-full bg-white/5 pl-8 pr-3 py-2 rounded-lg text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:ring-1 focus:ring-brown/50"
-                    />
-                  </div>
-                  <div className="space-y-1 overflow-y-auto max-h-[400px]">
-                    {isLoading ? (
-                      <div className="text-center py-6 text-neutral-500 text-sm">Loading...</div>
-                    ) : (
-                      filteredTeams.map((team) => (
-                        <button
-                          key={team.id}
-                          onClick={() => setSelectedTeam(team.id)}
-                          className="w-full flex items-center gap-2 p-2 rounded-lg transition-all hover:bg-white/5 border border-transparent"
-                        >
-                          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold bg-white/10 text-brown-light">
-                            {team.name.substring(0, 2).toUpperCase()}
-                          </div>
-                          <div className="text-left flex-1 min-w-0">
-                            <div className="text-xs font-semibold text-white truncate">{team.name}</div>
-                            <div className="text-[10px] text-neutral-500">LoL Esports</div>
-                          </div>
-                          <ChevronRight size={14} className="text-neutral-600" />
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </ScoutCard>
-              </div>
-            )}
-
-            {/* Main Content Area - Full width when team selected */}
-            <div className={`col-span-12 transition-all duration-300 ${selectedTeam ? 'lg:col-span-12' : 'lg:col-span-8'}`}>
+            {/* Main Content Area - Dynamic sizing */}
+            <div className={`col-span-12 transition-all duration-300 ${selectedTeam ? 'lg:col-span-9' : 'lg:col-span-8'}`}>
               {selectedTeam ? (
                 <div className="grid grid-cols-12 gap-4">
                   
                   {/* Team Header - Full Width */}
                   <div className="col-span-12">
-                    <ScoutCard className="p-6" glow>
+                    <GlassCard className="p-6" glow>
                       <div className="flex items-center gap-4">
                         <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-brown to-brown-light flex items-center justify-center text-2xl font-black text-white shadow-lg">
                           {selectedTeamName?.substring(0, 2).toUpperCase()}
@@ -380,12 +339,12 @@ export default function ScoutingPage() {
                           </div>
                         </div>
                       </div>
-                    </ScoutCard>
+                    </GlassCard>
                   </div>
 
                   {/* AI Analysis - Wide */}
                   <div className="col-span-12 lg:col-span-8">
-                    <ScoutCard className="p-5">
+                    <GlassCard className="p-5">
                       <div className="flex items-center gap-2 mb-3">
                         <Brain size={14} className="text-brown-light" />
                         <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">AI Strategic Analysis</span>
@@ -411,12 +370,12 @@ export default function ScoutingPage() {
                           <div className="text-sm font-bold text-purple-400">Dragon Soul</div>
                         </div>
                       </div>
-                    </ScoutCard>
+                    </GlassCard>
                   </div>
 
                   {/* Quick Stats */}
                   <div className="col-span-12 lg:col-span-4 space-y-4">
-                    <ScoutCard className="p-4">
+                    <GlassCard className="p-4">
                       <div className="flex items-center gap-2 mb-3">
                         <Activity size={14} className="text-brown-light" />
                         <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Performance Trend</span>
@@ -437,12 +396,12 @@ export default function ScoutingPage() {
                           </div>
                         </div>
                       </div>
-                    </ScoutCard>
+                    </GlassCard>
                   </div>
 
                   {/* Champion Pool */}
                   <div className="col-span-12 lg:col-span-6">
-                    <ScoutCard className="p-5">
+                    <GlassCard className="p-5">
                       <div className="flex items-center gap-2 mb-4">
                         <Star size={14} className="text-brown-light" />
                         <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Top Champion Pool</span>
@@ -470,12 +429,12 @@ export default function ScoutingPage() {
                           </div>
                         ))}
                       </div>
-                    </ScoutCard>
+                    </GlassCard>
                   </div>
 
                   {/* Performance Radar */}
                   <div className="col-span-12 lg:col-span-6">
-                    <ScoutCard className="p-5">
+                    <GlassCard className="p-5">
                       <div className="flex items-center gap-2 mb-4">
                         <BarChart3 size={14} className="text-brown-light" />
                         <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Performance Profile</span>
@@ -489,12 +448,12 @@ export default function ScoutingPage() {
                           </div>
                         ))}
                       </div>
-                    </ScoutCard>
+                    </GlassCard>
                   </div>
 
                   {/* Match History */}
                   <div className="col-span-12 lg:col-span-7">
-                    <ScoutCard className="p-5">
+                    <GlassCard className="p-5">
                       <div className="flex items-center gap-2 mb-4">
                         <Clock size={14} className="text-brown-light" />
                         <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Recent Matches</span>
@@ -524,12 +483,12 @@ export default function ScoutingPage() {
                           </div>
                         ))}
                       </div>
-                    </ScoutCard>
+                    </GlassCard>
                   </div>
 
                   {/* Recommended Bans */}
                   <div className="col-span-12 lg:col-span-5">
-                    <ScoutCard className="p-5">
+                    <GlassCard className="p-5">
                       <div className="flex items-center gap-2 mb-4">
                         <Shield size={14} className="text-red-400" />
                         <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Priority Bans</span>
@@ -562,13 +521,13 @@ export default function ScoutingPage() {
                           </div>
                         ))}
                       </div>
-                    </ScoutCard>
+                    </GlassCard>
                   </div>
 
                   {/* Player Roster */}
                   {selectedTeamPlayers.length > 0 && (
                     <div className="col-span-12">
-                      <ScoutCard className="p-5">
+                      <GlassCard className="p-5">
                         <div className="flex items-center gap-2 mb-4">
                           <Users size={14} className="text-brown-light" />
                           <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Team Roster</span>
@@ -588,12 +547,12 @@ export default function ScoutingPage() {
                             </div>
                           ))}
                         </div>
-                      </ScoutCard>
+                      </GlassCard>
                     </div>
                   )}
                 </div>
               ) : (
-                <ScoutCard className="flex items-center justify-center min-h-[calc(100vh-220px)]">
+                <GlassCard className="flex items-center justify-center min-h-[calc(100vh-220px)]">
                   <div className="max-w-2xl mx-auto px-8 py-12 text-center">
                     <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-brown/20 to-brown-light/20 flex items-center justify-center mb-6 mx-auto relative overflow-hidden">
                       <div className="absolute inset-0 bg-gradient-to-br from-brown/10 to-transparent animate-pulse"></div>
@@ -622,20 +581,12 @@ export default function ScoutingPage() {
                       <Eye size={56} className="text-brown-light" />
                     </div>
                   </div>
-                </ScoutCard>
+                </GlassCard>
               )}
             </div>
           </div>
         </div>
       </div>
-
-      {/* Scouting Report Modal */}
-      {reportData && (
-        <ScoutingReportModal
-          report={reportData}
-          onClose={() => setReportData(null)}
-        />
-      )}
     </MainLayout>
   );
 }

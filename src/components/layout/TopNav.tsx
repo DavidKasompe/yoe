@@ -23,31 +23,36 @@ export function TopNav() {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-neutral-200 z-50">
+    <nav className="fixed top-0 left-0 right-0 h-16 bg-black border-b border-white/10 z-50">
       <div className="h-full flex items-center justify-between px-6">
-        <div className="flex items-center gap-8">
+        {/* Logo on left */}
+        <div className="flex items-center">
           <Link href="/" className="flex items-center">
             <img src="/yoe.png" alt="YOE Logo" className="h-12 w-auto object-contain" />
           </Link>
-          <div className="flex gap-6">
-            {modules.map((module) => (
-              <Link
-                key={module.path}
-                href={module.path}
-                className={cn(
-                  "text-sm font-medium transition-colors",
-                  isActive(module.path)
-                    ? "text-black border-b-2 border-brown"
-                    : "text-neutral-600 hover:text-black",
-                )}
-              >
-                {module.name}
-              </Link>
-            ))}
-          </div>
         </div>
+        
+        {/* Navigation buttons in center */}
+        <div className="absolute left-1/2 -translate-x-1/2 flex gap-6">
+          {modules.map((module) => (
+            <Link
+              key={module.path}
+              href={module.path}
+              className={cn(
+                "text-sm font-medium transition-colors",
+                isActive(module.path)
+                  ? "text-white border-b-2 border-brown-light"
+                  : "text-neutral-400 hover:text-white",
+              )}
+            >
+              {module.name}
+            </Link>
+          ))}
+        </div>
+        
+        {/* User menu on right */}
         <div className="flex items-center gap-4">
-          <div className="text-sm text-neutral-600">
+          <div className="text-sm text-neutral-400">
             Team: Sample Organization
           </div>
           {user && (
@@ -60,17 +65,17 @@ export function TopNav() {
                 {user.fullName.charAt(0).toUpperCase()}
               </button>
               {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-neutral-200 rounded-lg shadow-lg">
+                <div className="absolute right-0 mt-2 w-48 bg-neutral-900 border border-white/10 rounded-lg shadow-lg">
                   <Link
                     href="/settings"
-                    className="flex items-center gap-2 px-4 py-3 text-sm text-neutral-700 hover:bg-neutral-100 border-b border-neutral-200"
+                    className="flex items-center gap-2 px-4 py-3 text-sm text-neutral-300 hover:bg-white/5 border-b border-white/10"
                     onClick={() => setShowUserMenu(false)}
                   >
                     <Settings size={16} />
                     Settings
                   </Link>
-                  <div className="px-4 py-3 text-xs text-neutral-600 border-b border-neutral-200">
-                    <p className="font-medium">{user.fullName}</p>
+                  <div className="px-4 py-3 text-xs text-neutral-400 border-b border-white/10">
+                    <p className="font-medium text-white">{user.fullName}</p>
                     <p>{user.email}</p>
                   </div>
                   <button
@@ -78,7 +83,7 @@ export function TopNav() {
                       logout();
                       setShowUserMenu(false);
                     }}
-                    className="w-full flex items-center gap-2 px-4 py-3 text-sm text-destructive hover:bg-neutral-100 transition-colors"
+                    className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-400 hover:bg-white/5 transition-colors"
                   >
                     <LogOut size={16} />
                     Log Out
