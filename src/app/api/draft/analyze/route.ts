@@ -6,31 +6,29 @@ const groqService = new GroqService();
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { bluePicks, redPicks, blueBans, redBans, currentPhase, availableChampions } = body;
+    const { bluePicks, redPicks, blueBans, redBans } = body;
 
     // Validate required fields
-    if (!currentPhase || !availableChampions) {
+    if (!bluePicks || !redPicks) {
       return NextResponse.json(
         { error: 'Missing required draft state fields' },
         { status: 400 }
       );
     }
 
-    const recommendation = await groqService.generateDraftRecommendation(
+    const analysis = await groqService.generateDraftAnalysis(
       bluePicks || [],
       redPicks || [],
       blueBans || [],
-      redBans || [],
-      currentPhase,
-      availableChampions
+      redBans || []
     );
 
-    return NextResponse.json(recommendation);
+    return NextResponse.json(analysis);
     
   } catch (error: any) {
-    console.error('Error in draft/recommend API:', error);
+    console.error('Error in draft/analyze API:', error);
     return NextResponse.json(
-      { error: 'Failed to generate recommendation', details: error.message },
+      { error: 'Failed to generate analysis', details: error.message },
       { status: 500 }
     );
   }

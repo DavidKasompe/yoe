@@ -4,15 +4,16 @@ import { useRouter } from "next/navigation";
 import { BarChart3, Target, Zap } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
+import { AnimatedFeaturesSection } from "@/components/landing/AnimatedFeaturesSection";
 
 export default function LandingPage() {
   const router = useRouter();
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-black">
       {/* Navigation */}
-      <nav className="border-b border-neutral-200">
+      <nav className="border-b border-white/10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center">
             <img src="/yoe.png" alt="YOE Logo" className="h-12 w-auto object-contain" />
@@ -29,7 +30,7 @@ export default function LandingPage() {
               <>
                 <Link
                   href="/auth/sign-in"
-                  className="text-black px-6 py-2 rounded font-medium hover:bg-neutral-100 transition-colors border border-black"
+                  className="text-white px-6 py-2 rounded font-medium hover:bg-white/10 transition-colors border border-white/20"
                 >
                   Sign In
                 </Link>
@@ -46,81 +47,47 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
+      <div className="max-w-7xl mx-auto px-6 pt-24 pb-0">
+        <div className="flex flex-col items-center text-center">
+          <h1 className="text-6xl md:text-7xl font-bold text-white mb-6 leading-tight max-w-5xl">
+            Competitive Intelligence for Champions
+          </h1>
+          <p className="text-xl md:text-2xl text-neutral-400 mb-10 max-w-3xl leading-relaxed">
+            YOE empowers coaches, scouts, and analysts with AI-driven insights
+            for competitive League of Legends teams. Analyze opponents,
+            optimize picks, and dominate the draft.
+          </p>
+          
+          <div className="flex flex-wrap justify-center gap-4 mb-2">
+            <Link
+              href="/coach"
+              className="bg-white text-black px-8 py-4 rounded-lg font-bold text-lg hover:bg-neutral-200 transition-colors"
+            >
+              Get Started
+            </Link>
+            <button className="border-2 border-white/20 text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-white/10 transition-colors">
+              See The Platform
+            </button>
+          </div>
+
+          <div className="relative w-full max-w-6xl">
+            <div className="relative transform hover:scale-[1.01] transition-transform duration-700 ease-out">
+              <img
+                src="/hero-dashboard-hd.png"
+                alt="YOE Analytics Dashboard"
+                className="w-full h-auto block drop-shadow-2xl"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Animated Features Section */}
+      <AnimatedFeaturesSection />
+
+      {/* CTA Section */}
       <div className="max-w-7xl mx-auto px-6 py-20">
-        <div className="grid md:grid-cols-2 gap-12 items-center mb-20">
-          <div>
-            <h1 className="text-5xl font-bold text-black mb-6 leading-tight">
-              Competitive Intelligence for Champions
-            </h1>
-            <p className="text-xl text-neutral-600 mb-8">
-              YOE empowers coaches, scouts, and analysts with AI-driven insights
-              for competitive League of Legends teams. Analyze opponents,
-              optimize picks, and dominate the draft.
-            </p>
-            <div className="flex gap-4">
-              <Link
-                href="/coach"
-                className="bg-black text-white px-8 py-3 rounded font-medium hover:bg-neutral-900 transition-colors"
-              >
-                Get Started
-              </Link>
-              <button className="border-2 border-black text-black px-8 py-3 rounded font-medium hover:bg-neutral-50 transition-colors">
-                Learn More
-              </button>
-            </div>
-          </div>
-          <div className="bg-neutral-100 rounded-lg h-96 flex items-center justify-center border border-neutral-200">
-            <div className="text-center">
-              <BarChart3 size={64} className="mx-auto text-neutral-400 mb-4" />
-              <p className="text-neutral-500">Advanced Analytics Dashboard</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Features */}
-        <div className="grid md:grid-cols-3 gap-8 mb-20">
-          <div className="bg-white border border-neutral-200 rounded-lg p-8">
-            <div className="w-12 h-12 bg-brown rounded-lg flex items-center justify-center mb-4">
-              <BarChart3 size={24} className="text-white" />
-            </div>
-            <h3 className="text-lg font-bold text-black mb-3">
-              Coach Dashboard
-            </h3>
-            <p className="text-neutral-600">
-              Real-time KPIs, win rates, objective control, and performance
-              metrics with AI-powered recommendations.
-            </p>
-          </div>
-
-          <div className="bg-white border border-neutral-200 rounded-lg p-8">
-            <div className="w-12 h-12 bg-brown rounded-lg flex items-center justify-center mb-4">
-              <Target size={24} className="text-white" />
-            </div>
-            <h3 className="text-lg font-bold text-black mb-3">
-              Scouting Reports
-            </h3>
-            <p className="text-neutral-600">
-              Auto-generated opponent analysis, player tendencies, and strategic
-              breakdowns for competitive advantage.
-            </p>
-          </div>
-
-          <div className="bg-white border border-neutral-200 rounded-lg p-8">
-            <div className="w-12 h-12 bg-brown rounded-lg flex items-center justify-center mb-4">
-              <Zap size={24} className="text-white" />
-            </div>
-            <h3 className="text-lg font-bold text-black mb-3">
-              Draft Intelligence
-            </h3>
-            <p className="text-neutral-600">
-              Live draft simulation and AI pick/ban recommendations with
-              confidence indicators.
-            </p>
-          </div>
-        </div>
-
-        {/* CTA Section */}
-        <div className="bg-black text-white rounded-lg p-12 text-center">
+        <div className="bg-[#111] border border-white/10 text-white rounded-lg p-12 text-center">
           <h2 className="text-3xl font-bold mb-4">
             Ready to Elevate Your Game?
           </h2>
@@ -137,9 +104,9 @@ export default function LandingPage() {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-neutral-200 bg-neutral-50 py-8 mt-20">
+      <footer className="border-t border-white/10 bg-black py-8 mt-20">
         <div className="max-w-7xl mx-auto px-6 text-center">
-          <p className="text-neutral-600">
+          <p className="text-neutral-500">
             © 2026 YOE. Professional esports analytics platform.
           </p>
         </div>

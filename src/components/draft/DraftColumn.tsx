@@ -12,7 +12,7 @@ export function DraftColumn({ side, picks }: DraftColumnProps) {
   const isBlue = side === "blue";
   
   return (
-    <div className="bg-[#1e1e1e] border border-white/5 rounded-[2.5rem] p-6 min-h-[600px] flex flex-col gap-4 shadow-2xl">
+    <div className="bg-black border border-white/20 rounded-[2.5rem] p-6 min-h-[600px] flex flex-col gap-4 shadow-2xl">
       <div className={cn("flex items-center gap-3 mb-4", !isBlue && "justify-end flex-row-reverse")}>
          {/* Unified Orange Dot for styling, could be removed if purely monochrome desired, but slight indicator is helpful. 
              Actually, reference is Orange only. Let's make it Orange. */}
@@ -30,8 +30,8 @@ export function DraftColumn({ side, picks }: DraftColumnProps) {
                    "h-24 rounded-3xl flex items-center px-6 relative overflow-hidden transition-all duration-300",
                    // Filled State
                    picks[i] 
-                     ? "bg-[#252525] border border-orange-500 shadow-lg shadow-orange-500/10"
-                     : "bg-[#252525]/30 border border-white/5 border-dashed group hover:border-orange-500/30 transition-colors"
+                     ? "bg-black border border-orange-500 shadow-lg shadow-orange-500/10"
+                     : "bg-black/30 border border-white/5 border-dashed group hover:border-orange-500/30 transition-colors"
                )}
              >
                 {picks[i] ? (
@@ -44,7 +44,7 @@ export function DraftColumn({ side, picks }: DraftColumnProps) {
                                 {picks[i]}
                             </span>
                         </div>
-                        <div className="w-12 h-12 rounded-2xl bg-[#1a1a1a] flex items-center justify-center text-orange-500 font-black text-sm border border-orange-500/20 shadow-inner">
+                        <div className="w-12 h-12 rounded-2xl bg-black flex items-center justify-center text-orange-500 font-black text-sm border border-orange-500/20 shadow-inner">
                             {picks[i].charAt(0)}
                         </div>
                     </div>

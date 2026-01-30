@@ -51,20 +51,52 @@ const getRoleIcon = (role: string) => {
 };
 
 // Sparkline component for mini trends
-const Sparkline = ({ data, color = "#c9a66b", height = 40 }: { data: number[], color?: string, height?: number }) => {
+const Sparkline = ({ 
+  data, 
+  color = "#c9a66b", 
+  height = 40,
+  fillOpacity = 0.2,
+  showDot = false
+}: { 
+  data: number[], 
+  color?: string, 
+  height?: number,
+  fillOpacity?: number,
+  showDot?: boolean
+}) => {
   if (!data || data.length < 2) return null;
   const max = Math.max(...data);
   const min = Math.min(...data);
   const range = max - min || 1;
   const width = 100;
+
+  // Calculate points for the line
   const points = data.map((val, i) => {
     const x = (i / (data.length - 1)) * width;
     const y = height - ((val - min) / range) * height;
     return `${x},${y}`;
   }).join(' ');
 
+  // Calculate last point for the dot
+  const lastVal = data[data.length - 1];
+  const lastX = width;
+  const lastY = height - ((lastVal - min) / range) * height;
+
+  // Calculate points for the fill area (closing the path at the bottom)
+  const fillPoints = `${points} ${width},${height} 0,${height}`;
+
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full absolute inset-0 opacity-30">
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full text-current" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+      <defs>
+        <linearGradient id={`gradient-${color.replace('#', '')}`} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={fillOpacity} />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polygon
+        points={fillPoints}
+        fill={`url(#gradient-${color.replace('#', '')})`}
+      />
       <polyline
         points={points}
         fill="none"
@@ -72,7 +104,19 @@ const Sparkline = ({ data, color = "#c9a66b", height = 40 }: { data: number[], c
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke" 
       />
+      {showDot && (
+        <circle 
+          cx={lastX} 
+          cy={lastY} 
+          r="3" 
+          fill={color} 
+          stroke="black" 
+          strokeWidth="2"
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
     </svg>
   );
 };
@@ -116,16 +160,19 @@ const ProgressRing = ({ value, size = 120, strokeWidth = 8, color = "#c9a66b" }:
 };
 
 // Enhanced card wrapper with improved styling
-const GlassCard = ({ children, className = "", glow = false, hover = true }: { children: React.ReactNode, className?: string, glow?: boolean, hover?: boolean }) => (
-  <div className={`
-    relative rounded-2xl overflow-hidden
-    bg-gradient-to-br from-neutral-900/90 via-black to-neutral-950
-    border border-white/[0.08]
-    ${glow ? 'shadow-2xl shadow-brown/20 border-brown/20' : 'shadow-lg shadow-black/50'}
-    ${hover ? 'hover:scale-[1.01] hover:shadow-2xl hover:shadow-brown/10 hover:border-white/[0.12]' : ''}
-    transition-all duration-300 ease-out
-    ${className}
-  `}>
+const GlassCard = ({ children, className = "", glow = false, hover = true, style }: { children: React.ReactNode, className?: string, glow?: boolean, hover?: boolean, style?: React.CSSProperties }) => (
+  <div 
+    className={`
+      relative rounded-2xl overflow-hidden
+      bg-gradient-to-br from-neutral-900/90 via-black to-neutral-950
+      border border-white/[0.08]
+      ${glow ? 'shadow-2xl shadow-brown/20 border-brown/20' : 'shadow-lg shadow-black/50'}
+      ${hover ? 'hover:scale-[1.01] hover:shadow-2xl hover:shadow-brown/10 hover:border-white/[0.12]' : ''}
+      transition-all duration-300 ease-out
+      ${className}
+    `}
+    style={style}
+  >
     {/* Subtle inner glow */}
     <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
     
@@ -426,7 +473,7 @@ export default function CoachDashboard() {
           <div className="grid grid-cols-12 gap-4">
             
             {/* Win Probability - Large Square */}
-            <GlassCard className="col-span-12 md:col-span-4 lg:col-span-3 p-6" glow>
+            <GlassCard className="order-4 col-span-12 md:col-span-6 lg:col-span-3 p-6" glow>
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brown/30 to-brown-light/30 flex items-center justify-center">
                   <Trophy size={18} className="text-brown-light" />
@@ -450,7 +497,7 @@ export default function CoachDashboard() {
             </GlassCard>
 
             {/* Objective Control */}
-            <GlassCard className="col-span-6 md:col-span-4 lg:col-span-3 p-6">
+            <GlassCard className="order-5 col-span-6 md:col-span-6 lg:col-span-3 p-6">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/20 to-purple-600/20 flex items-center justify-center">
                   <Crown size={16} className="text-purple-400" />
@@ -482,28 +529,31 @@ export default function CoachDashboard() {
             </GlassCard>
 
             {/* Gold Diff with Sparkline */}
-            <GlassCard className="col-span-6 md:col-span-4 lg:col-span-6 p-6">
-              <div className="flex items-center gap-2 mb-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isGoldPositive ? 'bg-gradient-to-br from-yellow-500/20 to-amber-600/20' : 'bg-gradient-to-br from-red-500/20 to-red-600/20'}`}>
-                  <TrendingUp size={16} className={isGoldPositive ? 'text-yellow-400' : 'text-red-400'} />
+            {/* Gold Diff with Sparkline - 224px (Uniform) */}
+            <GlassCard className="order-1 col-span-12 md:col-span-6 lg:col-span-4 p-6 flex flex-col relative overflow-hidden" style={{ height: "224px" }}>
+              <div className="relative z-10 w-full">
+                <div className="flex items-center gap-3 mb-1">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isGoldPositive ? 'bg-gradient-to-br from-yellow-500/20 to-amber-600/20' : 'bg-gradient-to-br from-red-500/20 to-red-600/20'}`}>
+                     <TrendingUp size={18} className={isGoldPositive ? 'text-yellow-400' : 'text-red-400'} />
+                  </div>
+                  <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider">GOLD ADVANTAGE</span>
                 </div>
-                <div className="flex-1">
-                  <span className="text-xs font-black text-neutral-400 uppercase tracking-wider block">Gold Advantage</span>
-                  <span className="text-[10px] text-neutral-600">vs {enemyTeam.name || 'Enemy'}</span>
-                </div>
+                <span className="text-[10px] text-neutral-500 font-medium ml-12 block -mt-1 opacity-70">vs {enemyTeam.name || 'Enemy'}</span>
               </div>
-              <div className="relative h-20">
-                <Sparkline data={goldHistory} color={isGoldPositive ? "#eab308" : "#ef4444"} height={80} />
-                <div className="absolute bottom-0 left-0">
-                  <span className={`text-4xl font-black ${isGoldPositive ? 'text-yellow-400' : 'text-red-400'}`}>
-                    {isGoldPositive ? '+' : ''}{goldDiff}k
-                  </span>
-                </div>
+
+              <div className="relative z-10 flex-1 flex items-center justify-center -mt-2">
+                <span className={`text-[48px] font-black leading-none tracking-tight ${isGoldPositive ? 'text-yellow-400' : 'text-white'}`}>
+                  {isGoldPositive ? '+' : ''}{goldDiff}k
+                </span>
+              </div>
+              
+              <div className="relative h-[56px] w-full mt-auto border-t border-white/[0.06] pt-0">
+                 <Sparkline data={goldHistory} color={isGoldPositive ? "#eab308" : "#ef4444"} height={56} fillOpacity={0.12} showDot={true} />
               </div>
             </GlassCard>
 
             {/* Team Roster */}
-            <GlassCard className="col-span-12 md:col-span-6 lg:col-span-3 p-5">
+            <GlassCard className="order-6 col-span-12 md:col-span-6 lg:col-span-3 p-5">
               <div className="flex items-center gap-2 mb-5">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500/20 to-cyan-600/20 flex items-center justify-center">
                   <Users size={16} className="text-blue-400" />
@@ -559,54 +609,55 @@ export default function CoachDashboard() {
             </GlassCard>
 
             {/* Performance Signal - Wide */}
-            <GlassCard className="col-span-12 md:col-span-6 lg:col-span-6 p-6">
-              <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4 block">Performance Signal</span>
-              <div className="h-32 relative">
-                {performanceHistory.length > 1 && (
-                  <svg viewBox="0 0 300 80" className="w-full h-full">
-                    <defs>
-                      <linearGradient id="perfGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#c9a66b" stopOpacity="0.3" />
-                        <stop offset="100%" stopColor="#c9a66b" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
-                    {/* Area fill */}
-                    <path
-                      d={`M0,80 ${performanceHistory.map((v, i) => `L${i * (300 / (performanceHistory.length - 1))},${80 - (v / Math.max(...performanceHistory)) * 70}`).join(' ')} L300,80 Z`}
-                      fill="url(#perfGradient)"
-                    />
-                    {/* Line */}
-                    <path
-                      d={`M0,${80 - (performanceHistory[0] / Math.max(...performanceHistory)) * 70} ${performanceHistory.map((v, i) => `L${i * (300 / (performanceHistory.length - 1))},${80 - (v / Math.max(...performanceHistory)) * 70}`).join(' ')}`}
-                      fill="none"
-                      stroke="#c9a66b"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                )}
+            {/* Performance Signal - 224px (Uniform) */}
+            <GlassCard className="order-2 col-span-12 md:col-span-6 lg:col-span-4 p-6 flex flex-col relative overflow-hidden" style={{ height: "224px" }}>
+              <div className="relative z-10 w-full">
+                <div className="flex items-center gap-3 mb-1">
+                   <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brown/20 to-brown-light/20 flex items-center justify-center">
+                      <Zap size={18} className="text-brown-light" />
+                   </div>
+                   <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider">PERFORMANCE SIGNAL</span>
+                </div>
+                <span className="text-[10px] text-neutral-500 font-medium ml-12 block -mt-1 opacity-70">Live Impact</span>
+              </div>
+
+              <div className="relative z-10 flex-1 flex items-center justify-center -mt-2">
+                 <span className="text-[42px] font-black leading-none text-white tracking-tight">
+                   {performanceHistory.length > 2 && performanceHistory[performanceHistory.length-1] > performanceHistory[performanceHistory.length-2] ? 'Climbing' : 'Stable'}
+                 </span>
+              </div>
+
+              <div className="relative h-[80px] w-full mt-auto">
+                 <Sparkline data={performanceHistory} color="#c9a66b" height={80} fillOpacity={0.1} showDot={true} />
               </div>
             </GlassCard>
 
             {/* Live Kills with Sparkline */}
-            <GlassCard className="col-span-6 md:col-span-4 lg:col-span-3 p-6">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500/20 to-orange-600/20 flex items-center justify-center">
-                  <Sword size={16} className="text-red-400" />
-                </div>
-                <span className="text-xs font-black text-neutral-400 uppercase tracking-wider">Team Kills</span>
+            {/* Team Kills - 224px (Uniform) */}
+            <GlassCard className="order-3 col-span-6 md:col-span-6 lg:col-span-4 p-6 flex flex-col relative overflow-hidden" style={{ height: "224px" }}>
+              <div className="relative z-10 w-full">
+                 <div className="flex items-center gap-3 mb-1">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500/20 to-orange-600/20 flex items-center justify-center">
+                       <Sword size={18} className="text-red-400" />
+                    </div>
+                    <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider">TEAM KILLS</span>
+                 </div>
               </div>
-              <div className="relative h-20 mt-2">
-                <Sparkline data={killsHistory} color="#ef4444" height={60} />
-                <div className="absolute bottom-0 left-0 flex items-baseline gap-2">
-                  <span className="text-4xl font-black text-white">{ourTeam.kills}</span>
-                  <span className="text-xl text-neutral-500 font-bold">/{enemyTeam.kills}</span>
-                </div>
+              
+              <div className="relative z-10 flex-1 flex items-center justify-center flex-col -mt-2">
+                 <span className="text-[48px] font-black leading-none text-white tracking-tight">{ourTeam.kills}</span>
+                 <span className={`text-md font-bold mt-1 bg-white/5 px-2 py-0.5 rounded ${ourTeam.kills > enemyTeam.kills ? 'text-green-400' : 'text-red-400'}`}>
+                    {ourTeam.kills > enemyTeam.kills ? '+' : ''}{ourTeam.kills - enemyTeam.kills} Diff
+                 </span>
+              </div>
+              
+              <div className="relative h-[48px] w-full mt-auto border-t border-white/[0.06] pt-0 opacity-50">
+                 <Sparkline data={killsHistory} color="#ef4444" height={48} fillOpacity={0.05} showDot={true} />
               </div>
             </GlassCard>
 
             {/* Coaching Actions */}
-            <GlassCard className="col-span-12 md:col-span-8 lg:col-span-6 p-5">
+            <GlassCard className="order-8 col-span-12 md:col-span-12 lg:col-span-12 p-4">
               <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4 block">Coaching Actions</span>
               <div className="flex flex-wrap gap-2">
                 {coachingActions.map((action, i) => (
@@ -625,7 +676,7 @@ export default function CoachDashboard() {
             </GlassCard>
 
             {/* Team KDA */}
-            <GlassCard className="col-span-6 md:col-span-4 lg:col-span-3 p-6">
+            <GlassCard className="order-7 col-span-6 md:col-span-4 lg:col-span-3 p-6">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500/20 to-emerald-600/20 flex items-center justify-center">
                   <TrendingUp size={16} className="text-green-400" />

@@ -19,6 +19,22 @@ interface DraftPhase {
   position: number;
 }
 
+interface MatchAnalysis {
+  winnerPrediction: 'Blue' | 'Red';
+  winProbability: number;
+  blueWinCondition: string;
+  redWinCondition: string;
+  keyMatchup: string;
+  description: string;
+}
+
+interface DeviationAnalysis {
+  impact: 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' | 'HIGH_RISK';
+  analysis: string;
+  lostAdvantage: string;
+  gainedAdvantage: string;
+}
+
 // Draft phase order for professional LoL (Fearless Draft style)
 const DRAFT_ORDER: DraftPhase[] = [
   // Ban Phase 1
@@ -49,10 +65,9 @@ const DRAFT_ORDER: DraftPhase[] = [
 
 const ROLES = ['Top', 'Jungle', 'Mid', 'ADC', 'Support'];
 
-// Glassmorphism card
+// Plain black card
 const GlassCard = ({ children, className = "", glow = false }: { children: React.ReactNode, className?: string, glow?: boolean }) => (
-  <div className={`relative rounded-2xl bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/10 overflow-hidden ${glow ? 'shadow-lg shadow-brown/20' : ''} ${className}`}>
-    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+  <div className={`relative rounded-2xl bg-black border border-white/20 overflow-hidden ${glow ? 'shadow-lg shadow-brown/10' : ''} ${className}`}>
     <div className="relative z-10 h-full">{children}</div>
   </div>
 );
@@ -85,6 +100,11 @@ export default function DraftIntelligencePage() {
   const [recommendation, setRecommendation] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [winProbability, setWinProbability] = useState(50);
+  const [finalAnalysis, setFinalAnalysis] = useState<MatchAnalysis | null>(null);
+  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [deviationAnalysis, setDeviationAnalysis] = useState<DeviationAnalysis | null>(null);
+  const [pendingChampion, setPendingChampion] = useState<Champion | null>(null);
+  const [isAnalyzingDeviation, setIsAnalyzingDeviation] = useState(false);
 
   // Fetch champions on mount
   useEffect(() => {
@@ -138,13 +158,76 @@ export default function DraftIntelligencePage() {
     return matchesSearch && matchesRole && !usedChampions.includes(c.name);
   });
 
-  const handleChampionSelect = useCallback((champion: Champion) => {
-    if (isDraftComplete || usedChampions.includes(champion.name)) return;
+  // Trigger AI analysis when phase changes
+  useEffect(() => {
+    if (!isDraftComplete && champions.length > 0) {
+      updateAIRecommendation();
+    } else if (isDraftComplete && !finalAnalysis) {
+      generateFinalAnalysis();
+    }
+  }, [currentPhase, isDraftComplete, champions.length]);
 
+  const generateFinalAnalysis = async () => {
+    setIsAnalyzing(true);
+    try {
+      const response = await fetch('/api/draft/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bluePicks: bluePicks.filter(Boolean),
+          redPicks: redPicks.filter(Boolean),
+          blueBans: blueBans.filter(Boolean),
+          redBans: redBans.filter(Boolean),
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setFinalAnalysis(data);
+        setShowAnalysis(true);
+      }
+    } catch (error) {
+      console.error("Failed to generate final analysis", error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+
+
+  const analyzeDeviation = async (champion: Champion) => {
+    setIsAnalyzingDeviation(true);
+    try {
+      const response = await fetch('/api/draft/deviation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recommendedChamp: recommendation.champion,
+          selectedChamp: champion.name,
+          draftState: {
+            currentPhase: currentDraftPhase,
+            bluePicks,
+            redPicks
+          }
+        }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setDeviationAnalysis(data);
+      }
+    } catch (error) {
+      console.error("Deviation analysis failed", error);
+      // Fallback: just allow selection if analysis fails
+      confirmSelection(champion);
+    } finally {
+      setIsAnalyzingDeviation(false);
+    }
+  };
+
+  const confirmSelection = (champion: Champion) => {
     const phase = currentDraftPhase;
-    
     if (phase.type === 'ban') {
-      if (phase.team === 'blue') {
+       if (phase.team === 'blue') {
         const newBans = [...blueBans];
         newBans[phase.position] = champion.name;
         setBlueBans(newBans);
@@ -165,43 +248,81 @@ export default function DraftIntelligencePage() {
       }
     }
 
+    // Clear deviation state
+    setPendingChampion(null);
+    setDeviationAnalysis(null);
     setCurrentPhase(prev => prev + 1);
-    updateAIRecommendation();
-  }, [currentPhase, currentDraftPhase, bluePicks, redPicks, blueBans, redBans, isDraftComplete, usedChampions]);
+  };
+
+  const cancelDeviation = () => {
+    setPendingChampion(null);
+    setDeviationAnalysis(null);
+  };
+
+  const handleChampionSelect = useCallback(async (champion: Champion) => {
+    if (isDraftComplete || usedChampions.includes(champion.name)) return;
+
+    // Check for Deviation (only pending logic if AI made a recommendation and user picks differently)
+    if (
+      recommendation && 
+      champion.name !== recommendation.champion
+    ) {
+      // If we are already pending this exact champion, do nothing (wait for user confirmation)
+      if (pendingChampion?.name === champion.name) return;
+
+      setPendingChampion(champion);
+      analyzeDeviation(champion);
+      return;
+    }
+
+    // Proceed with selection (either confirmed or no deviation)
+    confirmSelection(champion);
+  }, [currentPhase, currentDraftPhase, bluePicks, redPicks, blueBans, redBans, isDraftComplete, usedChampions, recommendation, pendingChampion]);
 
   const updateAIRecommendation = async () => {
     setIsAnalyzing(true);
+    setRecommendation(null);
     
-    // Simulate AI analysis
-    setTimeout(() => {
-      const availableChamps = champions.filter(c => !usedChampions.includes(c.name));
-      if (availableChamps.length > 0) {
-        const recommended = availableChamps[Math.floor(Math.random() * Math.min(5, availableChamps.length))];
-        
-        const reasons = [
-          `Strong counter to enemy composition. High synergy with your team's engage tools.`,
-          `Flexible pick that can adapt to multiple lanes. Excellent scaling into late game.`,
-          `Dominant laning presence. Provides crucial utility for team fights.`,
-          `Meta pick with high win rate in professional play. Covers team's weaknesses.`,
-        ];
+    try {
+      const availableChamps = champions.filter(c => !usedChampions.includes(c.name)).map(c => c.name);
+      
+      const response = await fetch('/api/draft/recommend', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bluePicks,
+          redPicks,
+          blueBans,
+          redBans,
+          currentPhase: currentDraftPhase,
+          availableChampions: availableChamps.slice(0, 40) // Send top 40 to save tokens
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const champ = champions.find(c => c.name === data.champion);
         
         setRecommendation({
-          champion: recommended.name,
-          championId: recommended.id,
-          reason: reasons[Math.floor(Math.random() * reasons.length)],
-          confidence: 0.7 + Math.random() * 0.25,
-          synergyScore: Math.floor(70 + Math.random() * 25),
-          counterScore: Math.floor(60 + Math.random() * 30),
+          champion: data.champion,
+          championId: champ?.id || data.champion,
+          reason: data.reason,
+          confidence: data.confidence,
+          synergyScore: data.synergyScore,
+          counterScore: data.counterScore,
         });
 
-        // Calculate win probability based on draft state
-        const bluePickCount = bluePicks.filter(Boolean).length;
-        const redPickCount = redPicks.filter(Boolean).length;
-        const baseProb = 50 + (bluePickCount - redPickCount) * 3 + Math.random() * 10 - 5;
+        // Calculate simplified win prob based on confidence + synergy
+        const baseProb = 50 + (data.synergyScore - 50) * 0.2 + (data.counterScore - 50) * 0.2;
         setWinProbability(Math.min(Math.max(baseProb, 30), 70));
       }
+    } catch (error) {
+      console.error('Failed to fetch draft recommendation:', error);
+    } finally {
       setIsAnalyzing(false);
-    }, 800);
+    }
   };
 
   const resetDraft = () => {
@@ -211,6 +332,10 @@ export default function DraftIntelligencePage() {
     setRedBans([null, null, null, null, null]);
     setCurrentPhase(0);
     setRecommendation(null);
+    setDeviationAnalysis(null);
+    setPendingChampion(null);
+    setFinalAnalysis(null);
+    setShowAnalysis(false);
     setWinProbability(50);
   };
 
@@ -222,7 +347,7 @@ export default function DraftIntelligencePage() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0f] via-[#0f0f18] to-[#0a0a0f] -m-10 p-10 pt-16">
+      <div className="min-h-screen bg-black -m-10 p-10 pt-16">
         <div className="max-w-[1600px] mx-auto">
           
           {/* Header */}
@@ -315,15 +440,79 @@ export default function DraftIntelligencePage() {
             <div className="col-span-12 lg:col-span-6 space-y-4">
               
               {/* AI Recommendation */}
-              <GlassCard className="p-6" glow>
+              <GlassCard className="p-6" glow={!!recommendation && !pendingChampion}>
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-brown/20 rounded-lg">
-                    <Zap size={16} className="text-brown-light" />
+                  <div className={`p-2 rounded-lg ${pendingChampion ? 'bg-red-500/20' : 'bg-brown/20'}`}>
+                    {pendingChampion ? <AlertTriangle size={16} className="text-red-400" /> : <Zap size={16} className="text-brown-light" />}
                   </div>
-                  <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">AI Strategic Assistant</h3>
+                  <h3 className={`text-xs font-semibold uppercase tracking-wider ${pendingChampion ? 'text-red-400' : 'text-neutral-400'}`}>
+                    {pendingChampion ? 'Strategic Deviation Warning' : 'AI Strategic Assistant'}
+                  </h3>
                 </div>
 
-                {recommendation ? (
+                {pendingChampion ? (
+                  // Deviation Analysis UI
+                  <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                     <div className="flex items-start justify-between mb-4">
+                        <div>
+                           <div className="text-[10px] text-neutral-500 uppercase tracking-widest mb-1">Proposed Switch</div>
+                           <div className="flex items-center gap-2">
+                             <span className="text-neutral-400 line-through text-sm">{recommendation?.champion}</span>
+                             <ChevronRight size={14} className="text-white/30" />
+                             <span className="text-xl font-bold text-white">{pendingChampion.name}</span>
+                           </div>
+                        </div>
+                        {deviationAnalysis && (
+                          <div className={`px-3 py-1 rounded-full border text-[10px] font-bold uppercase tracking-widest ${
+                            deviationAnalysis.impact === 'POSITIVE' ? 'bg-green-500/20 border-green-500/40 text-green-400' :
+                            deviationAnalysis.impact === 'HIGH_RISK' ? 'bg-red-500/20 border-red-500/40 text-red-500' :
+                            deviationAnalysis.impact === 'NEGATIVE' ? 'bg-orange-500/20 border-orange-500/40 text-orange-400' :
+                            'bg-blue-500/20 border-blue-500/40 text-blue-400'
+                          }`}>
+                            {deviationAnalysis.impact.replace('_', ' ')}
+                          </div>
+                        )}
+                     </div>
+
+                     {isAnalyzingDeviation ? (
+                        <div className="py-8 text-center space-y-3">
+                           <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto" />
+                           <p className="text-xs text-neutral-400 animate-pulse">Analyzing strategic impact...</p>
+                        </div>
+                     ) : deviationAnalysis ? (
+                        <div className="space-y-4">
+                           <p className="text-sm text-white italic leading-relaxed">"{deviationAnalysis.analysis}"</p>
+                           
+                           <div className="grid grid-cols-2 gap-3">
+                              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                                 <div className="text-[9px] text-red-400 uppercase font-bold mb-1">Lost Advantage</div>
+                                 <div className="text-xs text-neutral-300">{deviationAnalysis.lostAdvantage}</div>
+                              </div>
+                              <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                                 <div className="text-[9px] text-green-400 uppercase font-bold mb-1">Gained Advantage</div>
+                                 <div className="text-xs text-neutral-300">{deviationAnalysis.gainedAdvantage}</div>
+                              </div>
+                           </div>
+
+                           <div className="flex gap-3 pt-2">
+                              <button 
+                                onClick={() => confirmSelection(pendingChampion)}
+                                className="flex-1 py-2.5 bg-white text-black font-bold rounded-xl hover:bg-neutral-200 transition-colors text-xs uppercase tracking-wider"
+                              >
+                                Proceed
+                              </button>
+                              <button 
+                                onClick={cancelDeviation}
+                                className="flex-1 py-2.5 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10 transition-colors text-xs uppercase tracking-wider border border-white/10"
+                              >
+                                Cancel
+                              </button>
+                           </div>
+                        </div>
+                     ) : null}
+                  </div>
+                ) : recommendation ? (
+                  // Existing Recommendation UI
                   <div className="flex gap-6">
                     <div className="flex-1">
                       <div className="text-[10px] text-brown-light uppercase tracking-widest mb-1">Recommended Pick</div>
@@ -521,6 +710,71 @@ export default function DraftIntelligencePage() {
           </div>
         </div>
       </div>
+
+      {/* Final Analysis Modal */}
+      {showAnalysis && finalAnalysis && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <GlassCard className="max-w-3xl w-full p-6 border-brown/30 shadow-2xl shadow-brown/10 relative" glow>
+            {/* Close Button */}
+            <button 
+              onClick={() => setShowAnalysis(false)}
+              className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors text-white/50 hover:text-white"
+            >
+              <Users size={20} className="rotate-45" /> 
+            </button>
+
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brown/20 border border-brown/40 text-brown-light text-[10px] font-bold uppercase tracking-widest mb-3">
+                Match Simulation Complete
+              </div>
+              <h2 className="text-3xl font-black text-white mb-2">PREDICTED WINNER: <span className={finalAnalysis.winnerPrediction === 'Blue' ? 'text-blue-500' : 'text-red-500'}>{finalAnalysis.winnerPrediction.toUpperCase()} TEAM</span></h2>
+              <div className="flex justify-center items-center gap-3">
+                <span className="text-neutral-400 text-sm">Confidence:</span>
+                <div className="h-1.5 w-32 bg-white/10 rounded-full overflow-hidden">
+                   <div className={`h-full ${finalAnalysis.winnerPrediction === 'Blue' ? 'bg-blue-500' : 'bg-red-500'}`} style={{ width: `${finalAnalysis.winProbability}%` }} />
+                </div>
+                <span className="font-bold text-white text-sm">{finalAnalysis.winProbability}%</span>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4 mb-6">
+              <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/20">
+                <h3 className="text-blue-400 font-bold uppercase tracking-wider text-xs mb-2">Blue Win Condition</h3>
+                <p className="text-white text-sm leading-relaxed">{finalAnalysis.blueWinCondition}</p>
+              </div>
+              <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/20">
+                <h3 className="text-red-400 font-bold uppercase tracking-wider text-xs mb-2">Red Win Condition</h3>
+                <p className="text-white text-sm leading-relaxed">{finalAnalysis.redWinCondition}</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-neutral-500 uppercase tracking-widest text-[10px] font-bold mb-1">Key Matchup</h4>
+                <div className="p-3 rounded-lg bg-white/5 border border-white/10 text-white font-medium text-sm">
+                  {finalAnalysis.keyMatchup}
+                </div>
+              </div>
+              <div>
+                <h4 className="text-neutral-500 uppercase tracking-widest text-[10px] font-bold mb-1">Tactical Summary</h4>
+                <p className="text-neutral-300 text-sm leading-relaxed italic border-l-2 border-brown pl-3">
+                  "{finalAnalysis.description}"
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={resetDraft}
+                className="px-6 py-2.5 rounded-xl bg-brown text-white font-bold hover:bg-brown-light transition-all shadow-lg hover:shadow-brown/20 flex items-center gap-2 text-sm"
+              >
+                <RotateCcw size={16} />
+                Start New Draft
+              </button>
+            </div>
+          </GlassCard>
+        </div>
+      )}
     </MainLayout>
   );
 }

@@ -13,7 +13,7 @@ export function DraftBanList({ side, bans }: DraftBanListProps) {
 
   return (
     <div className={cn(
-        "bg-[#1e1e1e] border border-white/5 rounded-[2rem] p-6 min-h-[140px] flex flex-col justify-center shadow-lg",
+        "bg-black border border-white/20 rounded-[2rem] p-6 min-h-[140px] flex flex-col justify-center shadow-lg",
         !isBlue && "items-end"
     )}>
        <h3 className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em] mb-4">
@@ -23,7 +23,7 @@ export function DraftBanList({ side, bans }: DraftBanListProps) {
           {[...Array(5)].map((_, i) => (
              <div 
                key={i} 
-               className="w-12 h-12 rounded-xl bg-[#252525] flex items-center justify-center border border-white/5 data-[active=true]:border-orange-500/50"
+               className="w-12 h-12 rounded-xl bg-black flex items-center justify-center border border-white/5 data-[active=true]:border-orange-500/50"
                data-active={!!bans[i]}
              >
                  {bans[i] ? (
