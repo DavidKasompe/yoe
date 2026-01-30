@@ -178,7 +178,7 @@ export default function ScoutingPage() {
       
       // Store report data to display in modal
       setReportData(report);
-      console.log("Generated Report:", report);
+
       
     } catch (error) {
       console.error("Report generation failed:", error);
