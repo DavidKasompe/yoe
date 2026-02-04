@@ -93,7 +93,7 @@ export function ScoutStatsPanel() {
                           <XAxis type="number" hide />
                           <YAxis dataKey="name" type="category" hide />
                           <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ backgroundColor: '#333', border: 'none', color: '#fff' }} />
-                          <Bar dataKey="value" fill="#FFF59D" radius={[0, 4, 4, 0]} background={{ fill: '#333', radius: [0, 4, 4, 0] }} />
+                          <Bar dataKey="value" fill="#FFF59D" radius={[0, 4, 4, 0] as any} background={{ fill: '#333', radius: [0, 4, 4, 0] as any }} />
                       </BarChart>
                   </ResponsiveContainer>
               </div>
@@ -114,7 +114,7 @@ export function ScoutStatsPanel() {
                           <XAxis type="number" hide />
                           <YAxis dataKey="name" type="category" hide />
                           <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ backgroundColor: '#333', border: 'none', color: '#fff' }} />
-                          <Bar dataKey="value" fill="#BDBDBD" radius={[0, 4, 4, 0]} background={{ fill: '#333', radius: [0, 4, 4, 0] }} />
+                          <Bar dataKey="value" fill="#BDBDBD" radius={[0, 4, 4, 0] as any} background={{ fill: '#333', radius: [0, 4, 4, 0] as any }} />
                       </BarChart>
                   </ResponsiveContainer>
               </div>
@@ -142,8 +142,8 @@ export function ScoutStatsPanel() {
                       <XAxis type="number" hide />
                       <YAxis dataKey="name" type="category" tick={{fill: '#666', fontSize: 10}} width={30} />
                       <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ backgroundColor: '#333', border: 'none' }} />
-                      <Bar dataKey="full" stackId="a" fill="#FFF59D" radius={[0, 0, 0, 0]} />
-                      <Bar dataKey="match" stackId="a" fill="#757575" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="full" stackId="a" fill="#FFF59D" radius={[0, 0, 0, 0] as any} />
+                      <Bar dataKey="match" stackId="a" fill="#757575" radius={[0, 4, 4, 0] as any} />
                   </BarChart>
               </ResponsiveContainer>
           </div>
