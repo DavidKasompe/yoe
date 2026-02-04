@@ -333,11 +333,11 @@ export default function CoachDashboard() {
   // Calculate team KDA
   const teamKills = ourTeam.kills;
   const teamDeaths = enemyTeam.kills;
-  const teamAssists = ourTeam.players.reduce((sum: number, p) => sum + (p.stats.assists || 0), 0);
+  const teamAssists = ourTeam.players.reduce<number>((sum, p) => sum + (p.stats.assists || 0), 0);
   const teamKDA = teamDeaths > 0 ? ((teamKills + teamAssists) / teamDeaths).toFixed(1) : "Perfect";
 
   // Resource usage (based on gold efficiency)
-  const totalGoldOurs = ourTeam.players.reduce((sum: number, p) => sum + (p.stats.gold || 0), 0);
+  const totalGoldOurs = ourTeam.players.reduce<number>((sum, p) => sum + (p.stats.gold || 0), 0);
   const avgGold = totalGoldOurs / (ourTeam.players.length || 1);
   const resourceUsage = Math.min(Math.round((avgGold / 15000) * 100), 100);
 
