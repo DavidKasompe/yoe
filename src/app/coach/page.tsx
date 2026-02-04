@@ -316,8 +316,8 @@ export default function CoachDashboard() {
   };
 
   const teams = liveData?.teams || [];
-  const ourTeam = teams[0] || { kills: 0, gold: 0, towers: 0, dragons: 0, barons: 0, heralds: 0, players: [] };
-  const enemyTeam = teams[1] || { kills: 0, gold: 0, towers: 0, dragons: 0, barons: 0, heralds: 0, players: [] };
+  const ourTeam = teams[0] || { name: "T1", kills: 0, gold: 0, towers: 0, dragons: 0, barons: 0, heralds: 0, players: [] };
+  const enemyTeam = teams[1] || { name: "Enemy", kills: 0, gold: 0, towers: 0, dragons: 0, barons: 0, heralds: 0, players: [] };
 
   // Calculate metrics from live data
   const goldDiff = ((ourTeam.gold - enemyTeam.gold) / 1000).toFixed(1);
